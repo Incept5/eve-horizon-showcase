@@ -81,7 +81,7 @@ export function Home() {
               <span className="text-xs font-semibold uppercase tracking-wider text-green-500">Human kicks it off</span>
             </div>
             <pre className="p-4 overflow-x-auto">
-              <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @anthropic/eve-cli\nmkdir my-project && cd my-project\neve skills install https://github.com/incept5/eve-skillpacks\nclaude'}</code>
+              <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @eve-horizon/cli\nmkdir my-project && cd my-project\neve skills install https://github.com/incept5/eve-skillpacks\nclaude'}</code>
             </pre>
             <div className="px-4 pb-4 text-xs text-(--color-text-3)">
               Then run: <code className="bg-(--color-surface-3) px-1 py-0.5 rounded">/eve-bootstrap</code>
@@ -94,7 +94,7 @@ export function Home() {
               <span className="text-xs font-semibold uppercase tracking-wider text-(--color-accent)">Agent does it all</span>
             </div>
             <pre className="p-4 overflow-x-auto">
-              <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @anthropic/eve-cli\neve skills install https://github.com/incept5/eve-skillpacks\nskill read eve-bootstrap'}</code>
+              <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @eve-horizon/cli\neve skills install https://github.com/incept5/eve-skillpacks\nskill read eve-bootstrap'}</code>
             </pre>
             <div className="px-4 pb-4 text-xs text-(--color-text-3)">
               Agent installs skills then finds and runs skill "eve-bootstrap".

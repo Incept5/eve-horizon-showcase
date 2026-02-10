@@ -20,7 +20,7 @@ export const capabilities: Capability[] = [
     color: 'green',
     diagram: `graph TD
     subgraph Start["Install"]
-      INSTALL["npm install -g @anthropic/eve-cli"]
+      INSTALL["npm install -g @eve-horizon/cli"]
       SKILLS["eve skills install ..."]
       BOOT["skill read eve-bootstrap"]
     end

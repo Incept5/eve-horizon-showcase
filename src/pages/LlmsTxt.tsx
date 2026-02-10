@@ -19,7 +19,7 @@ function generateLlmsTxt(): string {
     '## Quick Start',
     '',
     '```bash',
-    'npm install -g @anthropic/eve-cli',
+    'npm install -g @eve-horizon/cli',
     'eve skills install https://github.com/incept5/eve-skillpacks',
     'skill read eve-bootstrap',
     '```',
