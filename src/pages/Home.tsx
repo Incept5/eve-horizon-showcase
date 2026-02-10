@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { CapabilityCard } from '../components/CapabilityCard'
 import { capabilities } from '../data/capabilities'
 
@@ -35,6 +36,17 @@ export function Home() {
               </div>
             ))}
           </div>
+
+          {/* LLMs link */}
+          <div className="mt-8">
+            <Link
+              to="/llms"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-(--color-border) bg-(--color-surface-2) text-sm text-(--color-text-2) hover:text-(--color-accent) hover:border-(--color-accent) transition-colors"
+            >
+              <span className="font-mono text-xs bg-(--color-surface-3) px-1.5 py-0.5 rounded">llms.txt</span>
+              LLM-friendly platform reference
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -48,6 +60,50 @@ export function Home() {
           commands. Same auth. Same API. No separate "agent API" — agents{' '}
           <em className="text-(--color-text)">are</em> users.
         </p>
+      </section>
+
+      {/* Getting Started */}
+      <section className="max-w-3xl mx-auto px-6 pb-16">
+        <h2 className="text-2xl font-bold text-(--color-text) mb-6">
+          Getting Started
+        </h2>
+        <div className="space-y-4">
+          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
+            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
+              <span className="text-xs font-mono text-(--color-text-3)">1. Install the Eve CLI</span>
+            </div>
+            <pre className="p-4 overflow-x-auto">
+              <code className="text-sm font-mono text-(--color-accent)">npm install -g @anthropic/eve-cli</code>
+            </pre>
+          </div>
+
+          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
+            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
+              <span className="text-xs font-mono text-(--color-text-3)">2. Authenticate</span>
+            </div>
+            <pre className="p-4 overflow-x-auto">
+              <code className="text-sm font-mono text-(--color-accent)">{'eve profile create staging --api-url https://api.eh1.incept5.dev\neve profile use staging\neve auth login --email you@example.com'}</code>
+            </pre>
+          </div>
+
+          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
+            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
+              <span className="text-xs font-mono text-(--color-text-3)">3. Install Eve skill packs into your repo</span>
+            </div>
+            <pre className="p-4 overflow-x-auto">
+              <code className="text-sm font-mono text-(--color-accent)">{'eve skills install'}</code>
+            </pre>
+          </div>
+
+          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
+            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
+              <span className="text-xs font-mono text-(--color-text-3)">4. Create a project and deploy</span>
+            </div>
+            <pre className="p-4 overflow-x-auto">
+              <code className="text-sm font-mono text-(--color-accent)">{'eve project ensure --name my-app --slug myapp \\\n  --repo-url https://github.com/org/repo\neve project sync\neve env create staging --type persistent\neve env deploy staging --ref main --repo-dir .'}</code>
+            </pre>
+          </div>
+        </div>
       </section>
 
       {/* Capability Grid */}
