@@ -1,0 +1,42 @@
+schema: eve/compose/v1
+project: eve-horizon-showcase
+
+registry:
+  host: ghcr.io
+  namespace: incept5
+  auth:
+    username_secret: GHCR_USERNAME
+    token_secret: GHCR_TOKEN
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/incept5/eve-horizon-showcase
+    ports: [3000]
+    environment:
+      NODE_ENV: production
+    x-eve:
+      ingress:
+        public: true
+        port: 3000
+
+environments:
+  staging:
+    pipeline: deploy
+
+pipelines:
+  deploy:
+    steps:
+      - name: build
+        action:
+          type: build
+      - name: release
+        depends_on: [build]
+        action:
+          type: release
+      - name: deploy
+        depends_on: [release]
+        action:
+          type: deploy
