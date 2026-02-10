@@ -247,73 +247,102 @@ x-eve:
   {
     id: 'agent-packs',
     title: 'AgentPacks',
-    subtitle: 'Portable agent configurations',
+    subtitle: 'Ship a team of agents in one package',
     icon: 'AP',
     color: 'pink',
-    diagram: `graph TD
-    subgraph PackSources[Pack Sources]
-      LOCAL["./skillpacks/my-pack"]
-      REMOTE["github.com/org/packs"]
+    diagram: `graph LR
+    subgraph Pack["software-factory pack"]
+      direction TB
+      PACK_YAML["pack.yaml"]
+      AGENTS["agents.yaml"]
+      TEAMS["teams.yaml"]
+      CHAT["chat.yaml"]
+      XEVE["x-eve.yaml"]
+      SKILLS["skills/"]
     end
-    subgraph ManifestConfig[Manifest Config]
-      XPACKS["x-eve.packs"]
-      INSTALL["x-eve.install_agents"]
+    subgraph Relay["Relay Chain"]
+      direction TB
+      PM["PM Agent<br/>fast-triage"]
+      PLANNER["Planner Agent<br/>deep-reasoning"]
+      CODER["Coder Agent<br/>primary-coder"]
+      VERIFIER["Verifier Agent<br/>deep-reasoning"]
     end
-    subgraph Resolution["eve agents sync"]
-      RESOLVE[Resolve Packs]
-      LOCK[".eve/packs.lock.yaml"]
+    subgraph Artifacts["Output"]
+      BRIEF["docs/briefs/"]
+      SPEC["docs/specs/"]
+      PLAN["docs/plans/"]
+      PR["Pull Request"]
     end
-    subgraph Installed[Installed Artifacts]
-      AGENTS_CFG["agents/agents.yaml"]
-      TEAMS_CFG["agents/teams.yaml"]
-      CHAT_CFG["agents/chat.yaml"]
-      SKILL_FILES["SKILL.md files"]
-    end
-    subgraph Harnesses[Target Harnesses]
-      CLAUDE[Claude Code]
-      CODEX[Codex]
-      GEMINI[Gemini CLI]
-    end
-    LOCAL --> XPACKS
-    REMOTE --> XPACKS
-    XPACKS --> RESOLVE
-    INSTALL --> RESOLVE
-    RESOLVE --> LOCK
-    RESOLVE --> Installed
-    Installed --> Harnesses`,
+    PACK_YAML --> Relay
+    PM -->|brief| PLANNER
+    PLANNER -->|spec + plan| CODER
+    CODER -->|implementation| VERIFIER
+    PM --> BRIEF
+    PLANNER --> SPEC
+    PLANNER --> PLAN
+    VERIFIER --> PR`,
     summary:
-      'AgentPacks bundle agent configurations, team definitions, chat routing, and skills into portable packages. They can be local directories or remote git repos, resolved at sync time and locked for reproducibility.',
+      'AgentPacks bundle specialized agents, team orchestration, chat routing, harness profiles, and skills into one portable package. A single pack can ship an entire software factory — PM, planner, coder, and verifier — that turns a chat message into a tested pull request.',
     details: [
-      'Pack sources: local directories (./skillpacks/my-pack) or remote git repos with SHA pinning',
-      'Manifest config: x-eve.packs lists sources, x-eve.install_agents selects target harnesses',
-      'Default harnesses: [claude-code] — override with [claude-code, codex, gemini-cli]',
-      'Per-pack harness targeting: packs can specify install_agents to limit which harnesses get skills',
-      'Lock file: .eve/packs.lock.yaml pins resolved versions for reproducible installs',
-      'Agent config paths: x-eve.agents.config_path, teams_path, and chat.config_path',
-      'Sync command: eve agents sync resolves packs and installs into workspace',
-      'Migration: eve migrate skills-to-packs converts skills.txt to manifest-based packs',
+      'Pack descriptor: pack.yaml declares an ID and imports agents, teams, chat routing, harness profiles, and skills',
+      'Specialized agents: each agent gets a focused skill, a harness profile tuned to its role, and scoped git policies',
+      'Harness profiles: fast-triage (low reasoning for intake), deep-reasoning (high reasoning for specs/verification), primary-coder (optimized for implementation)',
+      'Team orchestration: relay mode chains agents sequentially — PM → Planner → Coder → Verifier — each reading the previous agent\'s output',
+      'Chat routing: regex routes like ^factory\\b direct messages to the team, so users just type "factory build a login system"',
+      'Coordination inbox: .eve/coordination-inbox.md passes structured summaries between agents in the relay',
+      'Structured output contracts: agents emit json-result with eve.status and eve.summary for machine-readable handoffs',
+      'Pack sources: local directories or remote git repos with SHA pinning, locked in .eve/packs.lock.yaml',
     ],
     commands: [
       { cmd: 'eve agents sync --project proj_xxx --ref main --repo-dir .', desc: 'Sync agent/team/chat config from repo' },
       { cmd: 'eve agents config --project proj_xxx --json', desc: 'Inspect resolved agent config' },
       { cmd: 'eve packs status', desc: 'Check pack installation status' },
       { cmd: 'eve packs resolve --dry-run', desc: 'Preview pack resolution' },
-      { cmd: 'eve migrate skills-to-packs', desc: 'Migrate from skills.txt to packs' },
     ],
-    manifestExample: `x-eve:
-  install_agents: [claude-code, codex, gemini-cli]
-  packs:
-    - source: ./skillpacks/my-pack
-    - source: incept5/eve-skillpacks
-      ref: 0123456789abcdef0123456789abcdef01234567
-    - source: ./skillpacks/claude-only
-      install_agents: [claude-code]
-  agents:
-    version: 1
-    config_path: agents/agents.yaml
-    teams_path: agents/teams.yaml
-  chat:
-    config_path: agents/chat.yaml`,
+    manifestExample: `# pack.yaml — the pack descriptor
+version: 1
+id: software-factory
+imports:
+  agents: eve/agents.yaml
+  teams: eve/teams.yaml
+  chat: eve/chat.yaml
+  x_eve: eve/x-eve.yaml
+
+# agents.yaml — specialized agents
+agents:
+  factory_pm:
+    slug: factory-pm
+    skill: factory-pm
+    harness_profile: fast-triage
+    description: "Intake + brief: interviews if underspecified, writes brief with acceptance criteria"
+    policies:
+      permission_policy: auto_edit
+      git: { commit: auto, push: on_success }
+  factory_planner:
+    slug: factory-planner
+    skill: factory-planner
+    harness_profile: deep-reasoning
+  factory_coder:
+    slug: factory-coder
+    skill: factory-coder
+    harness_profile: primary-coder
+  factory_verifier:
+    slug: factory-verifier
+    skill: factory-verifier
+    harness_profile: deep-reasoning
+
+# teams.yaml — relay chain orchestration
+teams:
+  factory:
+    lead: factory_pm
+    members: [factory_planner, factory_coder, factory_verifier]
+    dispatch:
+      mode: relay
+
+# chat.yaml — route "factory ..." to the team
+routes:
+  - match: "^factory\\\\b"
+    target: team:factory`,
   },
   {
     id: 'harnesses',
@@ -479,7 +508,7 @@ x-eve:
       'Commit message templates: job/${job_id}: ${summary}',
       'Workspace modes: job (fresh per job), session (shared), isolated',
       'Defaults from x-eve.defaults.git and x-eve.defaults.workspace in manifest',
-      'Each attempt gets a fresh workspace today — workspace reuse is planned',
+      'Each attempt gets a fresh workspace clone',
     ],
     commands: [
       { cmd: 'eve job create --description "Fix" --ref main', desc: 'Job with explicit ref' },
@@ -526,7 +555,7 @@ x-eve:
       'End-of-attempt relay: child summaries posted to coordination thread',
       'Coordination inbox: .eve/coordination-inbox.md written to workspace',
       'Supervision stream: lead can long-poll child events in real-time',
-      'Team dispatch modes: fanout (parallel), with council/relay planned',
+      'Team dispatch modes: fanout (parallel), council, relay',
     ],
     commands: [
       { cmd: 'eve job create --parent $JOB_ID', desc: 'Spawn sub-agent work' },
@@ -805,7 +834,7 @@ workflows:
       'Encrypted at rest: AES-256 encryption with EVE_SECRETS_MASTER_KEY',
       'Env allowlist: only safe variables forwarded to agent harness',
       'Security policy preamble: injected into every agent prompt automatically',
-      'No master keys in execution: EVE_SECRETS_MASTER_KEY removed from runner env',
+      'Master key isolation: EVE_SECRETS_MASTER_KEY never exposed to agent runners',
       'Manifest interpolation: ${secret.KEY} resolves at deploy time',
       'Manifest requirements: x-eve.requires.secrets declares needed keys',
       'Dev secrets: .eve/dev-secrets.yaml for local development (gitignored)',
@@ -934,7 +963,7 @@ workflows:
       'Install targets: .agent/skills/ (universal) with .claude/skills/ symlink',
       'Search priority: project → global, universal → harness-specific',
       'Five harnesses supported: mclaude, zai, gemini, code, codex',
-      'Migration path: skills.txt → x-eve.packs in manifest via eve migrate skills-to-packs',
+      'Conversion: eve migrate skills-to-packs converts skills.txt to manifest-based packs',
     ],
     commands: [
       { cmd: 'skill read <name>', desc: 'Load skill instructions' },

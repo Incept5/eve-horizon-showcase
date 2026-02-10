@@ -84,7 +84,7 @@ export function Home() {
               <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @anthropic/eve-cli\nmkdir my-project && cd my-project\neve skills install https://github.com/incept5/eve-skillpacks\nclaude'}</code>
             </pre>
             <div className="px-4 pb-4 text-xs text-(--color-text-3)">
-              Then ask: <code className="bg-(--color-surface-3) px-1 py-0.5 rounded">/skill read eve-bootstrap</code>
+              Then run: <code className="bg-(--color-surface-3) px-1 py-0.5 rounded">/eve-bootstrap</code>
             </div>
           </div>
 
@@ -97,7 +97,7 @@ export function Home() {
               <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @anthropic/eve-cli\neve skills install https://github.com/incept5/eve-skillpacks\nskill read eve-bootstrap'}</code>
             </pre>
             <div className="px-4 pb-4 text-xs text-(--color-text-3)">
-              Agent installs skills then loads and follows the bootstrap skill directly.
+              Agent installs skills then finds and runs skill "eve-bootstrap".
             </div>
           </div>
         </div>
