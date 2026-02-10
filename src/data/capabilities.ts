@@ -13,6 +13,64 @@ export interface Capability {
 
 export const capabilities: Capability[] = [
   {
+    id: 'onboarding',
+    title: 'Self-Service Onboarding',
+    subtitle: 'Zero to running in minutes',
+    icon: 'GO',
+    color: 'green',
+    diagram: `graph TD
+    subgraph Start["Install"]
+      INSTALL["npm install -g @anthropic/eve-cli"]
+      SKILLS["eve skills install ..."]
+      BOOT["skill read eve-agent-bootstrap"]
+    end
+    subgraph Bootstrap["Bootstrap Skill"]
+      CHECK{"eve auth status"}
+      PROFILE["Create profile"]
+      REQ["Submit access request"]
+      POLL["Poll for approval"]
+      LOGIN["Auto-login"]
+      PROJ["Create project + manifest"]
+      LEARN["Read /llms reference"]
+    end
+    subgraph Admin
+      LIST["eve admin access-requests"]
+      APPROVE["approve <id>"]
+    end
+    INSTALL --> SKILLS
+    SKILLS --> BOOT
+    BOOT --> CHECK
+    CHECK -->|"Not authenticated"| PROFILE
+    CHECK -->|"Already authenticated"| PROJ
+    PROFILE --> REQ
+    REQ --> POLL
+    LIST --> APPROVE
+    APPROVE -.->|unblocks| POLL
+    POLL --> LOGIN
+    LOGIN --> PROJ
+    PROJ --> LEARN`,
+    summary:
+      'One bootstrap skill handles everything — whether you\'re a new user or already onboarded. It checks auth status, requests access if needed (with admin approval gate), sets up your project, and points you to the platform reference. Works the same for humans driving Claude and for autonomous agents.',
+    details: [
+      'Auth-aware: bootstrap runs eve auth status first — if already authenticated, skips straight to project setup',
+      'New users: skill creates a profile, submits access request with SSH pubkey, and polls until admin approves',
+      'Admin gate: one eve admin access-requests approve <id> — no pre-provisioning, no auto-approve',
+      'On approval: org created, user provisioned, identity registered, membership set to admin — all server-side',
+      'Auto-login: --wait flag polls every 5s, then completes SSH challenge login automatically on approval',
+      'Project setup: creates project, .eve/manifest.yaml, and profile defaults — same flow for new and existing users',
+      'Two entry points: human starts Claude then asks for the skill, or agent runs eve skills install + skill read directly',
+      'Platform learning: bootstrap points agents to the /llms route for full CLI, manifest, and capabilities reference',
+    ],
+    commands: [
+      { cmd: 'eve skills install https://github.com/incept5/eve-skillpacks', desc: 'Install skills (creates skills.txt if needed)' },
+      { cmd: 'skill read eve-agent-bootstrap', desc: 'Load and follow the bootstrap skill' },
+      { cmd: 'eve auth status', desc: 'Check if already authenticated' },
+      { cmd: 'eve auth request-access --ssh-key ~/.ssh/id_ed25519.pub --org "My Co" --wait', desc: 'Request access and wait (new users)' },
+      { cmd: 'eve admin access-requests', desc: 'List pending requests (admin)' },
+      { cmd: 'eve admin access-requests approve areq_xxx', desc: 'Approve and provision (admin)' },
+    ],
+  },
+  {
     id: 'architecture',
     title: 'Platform Architecture',
     subtitle: 'How agents connect',

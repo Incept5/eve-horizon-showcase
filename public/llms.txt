@@ -15,15 +15,15 @@ API stores state in Postgres. Event Spine routes triggers. Chat Gateway normaliz
 ## Quick Start
 
 ```bash
-eve profile create staging --api-url https://api.eh1.incept5.dev
-eve profile use staging
-eve auth login --email you@example.com
-eve org ensure my-org --slug myorg
-eve project ensure --name my-app --slug myapp --repo-url https://github.com/org/repo
-eve project sync
-eve env create staging --type persistent
-eve env deploy staging --ref main --repo-dir .
+npm install -g @anthropic/eve-cli
+eve skills install https://github.com/incept5/eve-skillpacks
+skill read eve-agent-bootstrap
 ```
+
+The bootstrap skill checks auth status and handles both new and existing users:
+- Already authenticated → skips to project setup
+- Not authenticated → creates profile, submits access request, waits for admin approval, auto-logs in
+Admin approves with: eve admin access-requests approve <id>
 
 ## Manifest (.eve/manifest.yaml)
 
@@ -228,6 +228,9 @@ eve workflow run <proj> <name> --input '{}'     Run workflow
 eve secrets set KEY value --project <id>        Store secret
 eve secrets import --file .env --project <id>   Bulk import
 eve event emit --type <type> --source <src>     Emit event
+eve auth request-access --ssh-key <pub> --org <name> --wait  Self-service onboard
+eve admin access-requests                       List pending access requests
+eve admin access-requests approve <id>          Approve + provision
 eve system health                               Platform health
 eve system status                               System overview
 eve agents sync --project <id>                  Sync agent config

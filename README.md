@@ -1,73 +1,74 @@
-# React + TypeScript + Vite
+# Eve Horizon Showcase
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interactive showcase for the [Eve Horizon](https://web.incept5-evshow-staging.eh1.incept5.dev) agent platform — a job-first cloud platform where AI agents are first-class citizens.
 
-Currently, two official plugins are available:
+Built with React, TypeScript, Tailwind CSS, and deployed via the Eve platform itself.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## What is this?
 
-## React Compiler
+A single-page application that serves as both a product demo and documentation hub for the Eve Horizon platform. It covers 16 capability areas including architecture, manifest spec, AgentPacks, harnesses, job lifecycle, orchestration, builds, observability, and more.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Each capability has an interactive detail page with Mermaid diagrams, CLI command references, and manifest examples.
 
-## Expanding the ESLint configuration
+The app also serves an `/llms` route with a structured reference document for LLM consumption, alongside a static `/llms.txt`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Live
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Staging:** https://web.incept5-evshow-staging.eh1.incept5.dev
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Tech stack
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- React 19 + TypeScript
+- Vite
+- Tailwind CSS 4
+- Mermaid diagrams (via `beautiful-mermaid`)
+- Docker multi-stage build (Node 22 → Nginx Alpine)
+- Eve Horizon platform for deployment
+
+## Development
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Build for production:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+npm run build
+npm run preview
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Deploy
+
+Deployed to Eve Horizon staging via the Eve CLI:
+
+```bash
+eve profile use staging
+eve env deploy staging --ref main --repo-dir .
+```
+
+The `.eve/manifest.yaml` defines the build → release → deploy pipeline targeting `ghcr.io/incept5/eve-horizon-showcase`.
+
+## Project structure
+
+```
+src/
+  pages/
+    Home.tsx          # Hero, stats, getting started, capability grid
+    Detail.tsx        # Per-capability deep dive with diagrams
+    LlmsTxt.tsx       # LLM-friendly platform reference
+  components/
+    CapabilityCard.tsx
+    Diagram.tsx       # Mermaid renderer with fullscreen
+    ThemeToggle.tsx   # Light/dark mode
+  data/
+    capabilities.ts   # All 16 capability definitions
+  hooks/
+    useTheme.ts
+    useMermaid.ts
+public/
+  llms.txt            # Static LLM reference
+.eve/
+  manifest.yaml       # Eve build/deploy config
 ```

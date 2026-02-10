@@ -22,7 +22,7 @@ export function Home() {
           <div className="mt-12 flex justify-center gap-12 flex-wrap">
             {[
               ['5', 'Agent Harnesses'],
-              ['16', 'Capability Areas'],
+              ['17', 'Capability Areas'],
               ['3', 'Build Backends'],
               ['80+', 'CLI Commands'],
             ].map(([num, label]) => (
@@ -64,46 +64,49 @@ export function Home() {
 
       {/* Getting Started */}
       <section className="max-w-3xl mx-auto px-6 pb-16">
-        <h2 className="text-2xl font-bold text-(--color-text) mb-6">
+        <h2 className="text-2xl font-bold text-(--color-text) mb-2">
           Getting Started
         </h2>
-        <div className="space-y-4">
+        <p className="text-sm text-(--color-text-2) mb-6">
+          The bootstrap skill detects whether you're already onboarded or not and handles both flows.{' '}
+          <Link to="/onboarding" className="text-(--color-accent) hover:underline">
+            See how it works →
+          </Link>
+        </p>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* Human-driven */}
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
-            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
-              <span className="text-xs font-mono text-(--color-text-3)">1. Install the Eve CLI</span>
+            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3)">
+              <span className="text-xs font-semibold uppercase tracking-wider text-green-500">Human kicks it off</span>
             </div>
             <pre className="p-4 overflow-x-auto">
-              <code className="text-sm font-mono text-(--color-accent)">npm install -g @anthropic/eve-cli</code>
+              <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @anthropic/eve-cli\nmkdir my-project && cd my-project\neve skills install https://github.com/incept5/eve-skillpacks\nclaude'}</code>
             </pre>
+            <div className="px-4 pb-4 text-xs text-(--color-text-3)">
+              Then ask: <code className="bg-(--color-surface-3) px-1 py-0.5 rounded">/skill read eve-agent-bootstrap</code>
+            </div>
           </div>
 
+          {/* Agent-driven */}
           <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
-            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
-              <span className="text-xs font-mono text-(--color-text-3)">2. Authenticate</span>
+            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3)">
+              <span className="text-xs font-semibold uppercase tracking-wider text-(--color-accent)">Agent does it all</span>
             </div>
             <pre className="p-4 overflow-x-auto">
-              <code className="text-sm font-mono text-(--color-accent)">{'eve profile create staging --api-url https://api.eh1.incept5.dev\neve profile use staging\neve auth login --email you@example.com'}</code>
+              <code className="text-sm font-mono text-(--color-accent)">{'npm install -g @anthropic/eve-cli\neve skills install https://github.com/incept5/eve-skillpacks\nskill read eve-agent-bootstrap'}</code>
             </pre>
-          </div>
-
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
-            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
-              <span className="text-xs font-mono text-(--color-text-3)">3. Install Eve skill packs into your repo</span>
+            <div className="px-4 pb-4 text-xs text-(--color-text-3)">
+              Agent installs skills then loads and follows the bootstrap skill directly.
             </div>
-            <pre className="p-4 overflow-x-auto">
-              <code className="text-sm font-mono text-(--color-accent)">{'eve skills install'}</code>
-            </pre>
-          </div>
-
-          <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
-            <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3) flex items-center gap-2">
-              <span className="text-xs font-mono text-(--color-text-3)">4. Create a project and deploy</span>
-            </div>
-            <pre className="p-4 overflow-x-auto">
-              <code className="text-sm font-mono text-(--color-accent)">{'eve project ensure --name my-app --slug myapp \\\n  --repo-url https://github.com/org/repo\neve project sync\neve env create staging --type persistent\neve env deploy staging --ref main --repo-dir .'}</code>
-            </pre>
           </div>
         </div>
+
+        <p className="mt-4 text-xs text-(--color-text-3) pl-1">
+          New users will be prompted for an access request — an admin approves with{' '}
+          <code className="bg-(--color-surface-3) px-1 py-0.5 rounded font-mono">eve admin access-requests approve {'<id>'}</code>.
+          Existing users skip straight to project setup.
+        </p>
       </section>
 
       {/* Capability Grid */}
