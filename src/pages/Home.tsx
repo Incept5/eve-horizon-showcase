@@ -21,9 +21,9 @@ export function Home() {
           <div className="mt-12 flex justify-center gap-12 flex-wrap">
             {[
               ['5', 'Agent Harnesses'],
-              ['2', 'Chat Channels'],
-              ['2', 'Identity Providers'],
-              ['60+', 'CLI Commands'],
+              ['16', 'Capability Areas'],
+              ['3', 'Build Backends'],
+              ['80+', 'CLI Commands'],
             ].map(([num, label]) => (
               <div key={label} className="text-center">
                 <div className="text-3xl font-bold text-(--color-accent)">
@@ -64,20 +64,31 @@ export function Home() {
 
       {/* Footer */}
       <footer className="border-t border-(--color-border) py-8 text-center text-sm text-(--color-text-3)">
-        Eve Horizon · Built by{' '}
-        <a
-          href="https://github.com/incept5"
-          className="text-(--color-accent) hover:underline"
-        >
-          Incept5
-        </a>
-        {' · Diagrams by '}
-        <a
-          href="https://github.com/lukilabs/beautiful-mermaid"
-          className="text-(--color-accent) hover:underline"
-        >
-          beautiful-mermaid
-        </a>
+        <div>
+          Eve Horizon · Built by{' '}
+          <a
+            href="https://github.com/incept5"
+            className="text-(--color-accent) hover:underline"
+          >
+            Incept5
+          </a>
+          {' · Diagrams by '}
+          <a
+            href="https://github.com/lukilabs/beautiful-mermaid"
+            className="text-(--color-accent) hover:underline"
+          >
+            beautiful-mermaid
+          </a>
+        </div>
+        <div className="mt-2">
+          <a
+            href="/llms"
+            className="text-(--color-accent) hover:underline"
+          >
+            llms.txt
+          </a>
+          {' — LLM-friendly platform reference'}
+        </div>
       </footer>
     </div>
   )

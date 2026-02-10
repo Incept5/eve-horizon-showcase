@@ -1,0 +1,241 @@
+# Eve Horizon
+
+> A job-first platform where AI agents are first-class citizens.
+> Agents authenticate, create work, deploy code, coordinate teams, and respond to chat — all through a single CLI.
+
+## Core Principle
+
+Anything a human can do through the CLI, an agent can do too. Same commands. Same auth. Same API. No separate "agent API" — agents are users.
+
+## Architecture
+
+User/Agent -> CLI -> API Gateway -> Orchestrator -> Worker -> Runner Pod -> Agent Harness
+API stores state in Postgres. Event Spine routes triggers. Chat Gateway normalizes Slack + Nostr messages.
+
+## Quick Start
+
+```bash
+eve profile create staging --api-url https://api.eh1.incept5.dev
+eve profile use staging
+eve auth login --email you@example.com
+eve org ensure my-org --slug myorg
+eve project ensure --name my-app --slug myapp --repo-url https://github.com/org/repo
+eve project sync
+eve env create staging --type persistent
+eve env deploy staging --ref main --repo-dir .
+```
+
+## Manifest (.eve/manifest.yaml)
+
+The manifest is the single source of truth. Schema: eve/compose/v1.
+Top-level fields: schema, project, registry, services, environments, pipelines, workflows, x-eve.
+
+### Services (Compose-Style)
+Fields: image, build (context, dockerfile), environment, ports, depends_on, healthcheck, volumes.
+Eve extensions (x-eve): ingress, role (component|worker|job), api_spec, external, worker_type.
+
+### Environments
+Link to pipelines via pipeline: key. Support overrides and approval gates.
+Deploy triggers pipeline: eve env deploy staging --ref main. Use --direct to bypass.
+
+### Pipelines
+Ordered steps: action (build/release/deploy/run/job/create-pr), script, or agent.
+Triggers: github (push/PR with branch wildcards), cron, manual.
+
+### Workflows
+On-demand jobs with JSON input/output. Defined under workflows: key.
+
+## Example Manifest
+
+```yaml
+schema: eve/compose/v1
+project: my-app
+
+registry:
+  host: ghcr.io
+  namespace: myorg
+  auth:
+    username_secret: GHCR_USERNAME
+    token_secret: GHCR_TOKEN
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    image: ghcr.io/myorg/my-api
+    ports: [3000]
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${secret.DB_PASSWORD}
+    x-eve:
+      ingress:
+        public: true
+        port: 3000
+      api_spec:
+        type: openapi
+        spec_url: /openapi.json
+
+environments:
+  staging:
+    pipeline: deploy
+    pipeline_inputs:
+      smoke_test: true
+
+pipelines:
+  deploy:
+    steps:
+      - name: build
+        action: { type: build }
+      - name: release
+        depends_on: [build]
+        action: { type: release }
+      - name: deploy
+        depends_on: [release]
+        action: { type: deploy }
+
+x-eve:
+  defaults:
+    env: staging
+    harness: mclaude
+    harness_profile: primary-orchestrator
+    git:
+      ref_policy: auto
+      branch: job/${job_id}
+      create_branch: if_missing
+      commit: manual
+      push: never
+  requires:
+    secrets: [GITHUB_TOKEN, DB_PASSWORD]
+  agents:
+    version: 1
+    availability:
+      drop_unavailable: true
+    profiles:
+      primary-orchestrator:
+        - harness: mclaude
+          model: opus-4.5
+          reasoning_effort: high
+        - harness: codex
+          model: gpt-5.2-codex
+          reasoning_effort: x-high
+  install_agents: [claude-code, codex, gemini-cli]
+  packs:
+    - source: ./skillpacks/my-pack
+    - source: incept5/eve-skillpacks
+      ref: 0123456789abcdef0123456789abcdef01234567
+```
+
+## Secret Interpolation
+
+${secret.KEY} in environment values. Scopes: project -> user -> org -> system (highest wins).
+Runtime vars: ${ENV_NAME}, ${PROJECT_ID}, ${ORG_ID}, ${ORG_SLUG}, ${COMPONENT_NAME}.
+
+## x-eve Extensions
+
+### Defaults (x-eve.defaults)
+env, harness, harness_profile, harness_options, hints, git, workspace.
+
+### Agent Profiles (x-eve.agents)
+Named harness+model combos with fallback ordering. version: 1, availability, profiles.
+Harnesses: mclaude/claude (Anthropic), zai (Z.ai), gemini (Google), codex/code (OpenAI).
+
+### AgentPacks (x-eve.packs)
+Bundle agent config, teams, chat routing, and skills. Local or remote sources.
+x-eve.install_agents: [claude-code, codex, gemini-cli]. Lock: .eve/packs.lock.yaml.
+
+### Git Controls (x-eve.defaults.git)
+ref_policy: auto|env|project_default|explicit.
+branch: job/${job_id}, create_branch: if_missing, commit: manual, push: never.
+
+## IDs
+
+Org: org_xxx, Project: proj_xxx, Job root: {slug}-{hash8}, Job child: {parent}.{n}.
+Pipeline run: prun_xxx, Build: bld_xxx, Build run: brun_xxx.
+
+## Job Lifecycle
+
+Phases: idea -> backlog -> ready -> active -> review -> done (or cancelled).
+Priority: 0-4 (P0 highest). Dependencies via waits_for/blocks.
+Git controls per job: ref, branch, commit, push policies.
+Harness per job: --harness mclaude --model opus-4.5 --reasoning high, or --profile name.
+
+## Agent Harnesses
+
+mclaude/claude (Anthropic), zai (Z.ai), gemini (Google), codex/code (OpenAI).
+Credential priority: API keys > OAuth tokens. Sandbox per workspace.
+Profiles: named fallback chains defined in x-eve.agents.profiles.
+
+## Build System
+
+BuildSpec -> BuildRun -> Artifacts (image digests). Backends: BuildKit, Buildx, Kaniko.
+Registry auth via GHCR_USERNAME + GHCR_TOKEN secrets.
+OCI labels auto-injected for GHCR repo linking.
+
+## Event Spine
+
+Sources: github, slack, cron, manual, app, system, runner.
+Runner events: started -> progress -> completed/failed.
+Trigger routing: orchestrator matches events to manifest triggers every 5s.
+
+## Chat Gateway
+
+Slack (webhook) + Nostr (relay subscription). Agent slug routing.
+@eve <agent-slug> <message>. Thread continuity across messages.
+Passive listeners. Chat config via x-eve.chat.config_path.
+
+## Identity Providers
+
+SSH (github_ssh): challenge-response via ssh-keygen.
+Nostr: kind-22242 challenge + NIP-98 per-request auth.
+Token TTL: 1-90 days. Invite-gated provisioning. Token minting for bots.
+
+## Skills System
+
+SKILL.md: YAML frontmatter + markdown instructions + references/, scripts/, assets/.
+Install: skills.txt -> .eve/hooks/on-clone.sh -> .agent/skills/ -> .claude/skills/.
+Progressive disclosure: metadata always, body on invoke.
+
+## Observability
+
+Job: follow (stream), diagnose (timeline+recommendations), attempts (timing), result.
+System: health, status, logs (api/orchestrator/worker), pods, events.
+Environment: diagnose (pod phase, restarts, readiness, k8s events), logs, services.
+Build: diagnose (spec+runs+artifacts+logs). Pipeline: per-step timing.
+Runner events: started -> progress (message/percentage) -> completed (result) / failed (error/exitCode).
+
+## CLI Quick Reference
+
+```
+eve profile create <name> --api-url <url>      Profile management
+eve auth login --email <email>                  SSH challenge login
+eve auth creds                                  Check local AI credentials
+eve auth sync                                   Sync OAuth tokens to Eve
+eve org ensure <name> --slug <slug>             Create/ensure org
+eve project ensure --name <n> --slug <s> --repo-url <url>   Create project
+eve project sync                                Sync manifest
+eve env create <name> --type persistent         Create environment
+eve env deploy <env> --ref <sha> --repo-dir .   Deploy
+eve env diagnose <proj> <env>                   Environment health
+eve env logs <proj> <env> <service>             Service logs
+eve job create --description "..."              Create work
+eve job follow <id>                             Stream logs
+eve job diagnose <id>                           Diagnostics
+eve job result <id>                             Get result
+eve build diagnose <id>                         Build diagnostics
+eve pipeline run <name> --ref <sha>             Run pipeline
+eve workflow run <proj> <name> --input '{}'     Run workflow
+eve secrets set KEY value --project <id>        Store secret
+eve secrets import --file .env --project <id>   Bulk import
+eve event emit --type <type> --source <src>     Emit event
+eve system health                               Platform health
+eve system status                               System overview
+eve agents sync --project <id>                  Sync agent config
+eve packs status                                Pack status
+```
+
+## Links
+
+- Showcase: https://web.incept5-evshow-staging.eh1.incept5.dev
+- GitHub: https://github.com/incept5/eve-horizon-showcase
+- Incept5: https://github.com/incept5

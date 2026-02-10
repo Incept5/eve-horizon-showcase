@@ -58,6 +58,23 @@ export function Detail({ theme }: Props) {
           </ul>
         </section>
 
+        {/* Manifest Example */}
+        {cap.manifestExample && (
+          <section className="mb-10">
+            <h2 className="text-xl font-semibold text-(--color-text) mb-4">
+              Manifest Example
+            </h2>
+            <div className="rounded-xl border border-(--color-border) bg-(--color-surface-2) overflow-hidden">
+              <div className="px-4 py-2 border-b border-(--color-border) bg-(--color-surface-3)">
+                <span className="text-xs font-mono text-(--color-text-3)">.eve/manifest.yaml</span>
+              </div>
+              <pre className="p-4 overflow-x-auto text-sm leading-relaxed">
+                <code className="text-(--color-text-2) font-mono">{cap.manifestExample}</code>
+              </pre>
+            </div>
+          </section>
+        )}
+
         {/* Commands */}
         <section className="mb-12">
           <h2 className="text-xl font-semibold text-(--color-text) mb-4">

@@ -16,6 +16,11 @@ const colorMap: Record<string, string> = {
   teal: 'from-teal-500/10 to-teal-600/5 border-teal-500/20 hover:border-teal-500/40',
   indigo: 'from-indigo-500/10 to-indigo-600/5 border-indigo-500/20 hover:border-indigo-500/40',
   slate: 'from-slate-500/10 to-slate-600/5 border-slate-500/20 hover:border-slate-500/40',
+  violet: 'from-violet-500/10 to-violet-600/5 border-violet-500/20 hover:border-violet-500/40',
+  pink: 'from-pink-500/10 to-pink-600/5 border-pink-500/20 hover:border-pink-500/40',
+  emerald: 'from-emerald-500/10 to-emerald-600/5 border-emerald-500/20 hover:border-emerald-500/40',
+  lime: 'from-lime-500/10 to-lime-600/5 border-lime-500/20 hover:border-lime-500/40',
+  sky: 'from-sky-500/10 to-sky-600/5 border-sky-500/20 hover:border-sky-500/40',
 }
 
 const iconColorMap: Record<string, string> = {
@@ -29,6 +34,11 @@ const iconColorMap: Record<string, string> = {
   teal: 'text-teal-500',
   indigo: 'text-indigo-500',
   slate: 'text-slate-400',
+  violet: 'text-violet-500',
+  pink: 'text-pink-500',
+  emerald: 'text-emerald-500',
+  lime: 'text-lime-500',
+  sky: 'text-sky-500',
 }
 
 export function CapabilityCard({ cap }: Props) {
