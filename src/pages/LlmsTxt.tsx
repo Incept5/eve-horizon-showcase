@@ -21,7 +21,7 @@ function generateLlmsTxt(): string {
     '```bash',
     'npm install -g @anthropic/eve-cli',
     'eve skills install https://github.com/incept5/eve-skillpacks',
-    'skill read eve-agent-bootstrap',
+    'skill read eve-bootstrap',
     '```',
     '',
     'The bootstrap skill checks auth status and handles both new and existing users:',

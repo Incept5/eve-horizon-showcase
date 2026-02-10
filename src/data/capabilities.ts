@@ -22,7 +22,7 @@ export const capabilities: Capability[] = [
     subgraph Start["Install"]
       INSTALL["npm install -g @anthropic/eve-cli"]
       SKILLS["eve skills install ..."]
-      BOOT["skill read eve-agent-bootstrap"]
+      BOOT["skill read eve-bootstrap"]
     end
     subgraph Bootstrap["Bootstrap Skill"]
       CHECK{"eve auth status"}
@@ -63,7 +63,7 @@ export const capabilities: Capability[] = [
     ],
     commands: [
       { cmd: 'eve skills install https://github.com/incept5/eve-skillpacks', desc: 'Install skills (creates skills.txt if needed)' },
-      { cmd: 'skill read eve-agent-bootstrap', desc: 'Load and follow the bootstrap skill' },
+      { cmd: 'skill read eve-bootstrap', desc: 'Load and follow the bootstrap skill' },
       { cmd: 'eve auth status', desc: 'Check if already authenticated' },
       { cmd: 'eve auth request-access --ssh-key ~/.ssh/id_ed25519.pub --org "My Co" --wait', desc: 'Request access and wait (new users)' },
       { cmd: 'eve admin access-requests', desc: 'List pending requests (admin)' },
