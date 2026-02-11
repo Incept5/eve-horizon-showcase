@@ -15,7 +15,7 @@ API stores state in Postgres. Event Spine routes triggers. Chat Gateway normaliz
 ## Quick Start
 
 ```bash
-npm install -g @anthropic/eve-cli
+npm install -g @eve-horizon/cli
 eve skills install https://github.com/incept5/eve-skillpacks
 skill read eve-bootstrap
 ```
@@ -32,7 +32,7 @@ Top-level fields: schema, project, registry, services, environments, pipelines, 
 
 ### Services (Compose-Style)
 Fields: image, build (context, dockerfile), environment, ports, depends_on, healthcheck, volumes.
-Eve extensions (x-eve): ingress, role (component|worker|job), api_spec, external, worker_type.
+Eve extensions (x-eve): ingress, role (component|worker|job|managed_db), api_spec, external, worker_type.
 
 ### Environments
 Link to pipelines via pipeline: key. Support overrides and approval gates.
@@ -134,7 +134,7 @@ Runtime vars: ${ENV_NAME}, ${PROJECT_ID}, ${ORG_ID}, ${ORG_SLUG}, ${COMPONENT_NA
 ## x-eve Extensions
 
 ### Defaults (x-eve.defaults)
-env, harness, harness_profile, harness_options, hints, git, workspace.
+env, harness, harness_profile, harness_options, hints, git, workspace, resource_class, max_cost, max_tokens.
 
 ### Agent Profiles (x-eve.agents)
 Named harness+model combos with fallback ordering. version: 1, availability, profiles.
@@ -169,8 +169,44 @@ Profiles: named fallback chains defined in x-eve.agents.profiles.
 ## Build System
 
 BuildSpec -> BuildRun -> Artifacts (image digests). Backends: BuildKit, Buildx, Kaniko.
-Registry auth via GHCR_USERNAME + GHCR_TOKEN secrets.
+Registry auth via GHCR_USERNAME + GHCR_TOKEN secrets, or use Eve-native registry (registry: eve).
 OCI labels auto-injected for GHCR repo linking.
+
+## Eve-Native Container Registry
+
+Opt-in with registry: eve. OCI-compliant distribution backed by S3/GCS/MinIO.
+Token auth: 5-min push JWTs, 1-hour pull JWTs. Auto ImagePullSecrets.
+Namespace: registry.{domain}/{org_slug}/{project_slug}/{service}:{tag}.
+Commands: eve registry list, eve registry tags <service>, eve registry gc, eve registry stats.
+
+## Managed Postgres
+
+Declare x-eve.role: managed_db on a service. Eve provisions per-environment databases.
+Modes: container (app-defined), external (user URL), managed (Eve-provisioned).
+Credential injection: ${managed.db.url}. Resource classes: db.p1, db.p2.
+Commands: eve db status, eve db rotate-credentials, eve db scale, eve db destroy.
+
+## Resource Management & Cost Tracking
+
+Execution receipts: JSONB on each attempt with timing, LLM usage, compute, dual costs.
+BYOK models tracked but not billed; managed models billed. Resource classes: job.c1, job.c2.
+Budget enforcement: pre-admission (orchestrator), real-time (worker), environment suspension.
+Balance ledger: immutable transactions with idempotency keys. FX snapshots for multi-currency.
+Commands: eve job receipt, eve project spend, eve org spend, eve job compare, eve admin balance credit.
+
+## Managed Models
+
+Multi-scope registry: platform -> org -> project (project wins). Each model declares its harness.
+Naming: managed/model-name prefix. Default catalog: DeepSeek R1, Llama 3.3, Kimi K2.5.
+Self-service: org/project admins register models via API. BYOK (unprefixed) coexists with managed.
+Commands: eve models list --managed, eve job create --model managed/deepseek-r1.
+
+## Gateway Discovery Policy
+
+Three levels: none (hidden), discoverable (listed), routable (fully addressable via chat).
+Config layers: pack default -> agent override -> project overlay. Safe default: none.
+Client restrictions: gateway.clients limits to [slack] or [nostr]. Teams/pipelines unaffected.
+Commands: eve agents list, @eve agents list, @eve <slug> <message>.
 
 ## Event Spine
 
@@ -222,6 +258,7 @@ eve job create --description "..."              Create work
 eve job follow <id>                             Stream logs
 eve job diagnose <id>                           Diagnostics
 eve job result <id>                             Get result
+eve job receipt <id> --json                     Execution receipt
 eve build diagnose <id>                         Build diagnostics
 eve pipeline run <name> --ref <sha>             Run pipeline
 eve workflow run <proj> <name> --input '{}'     Run workflow
@@ -234,7 +271,18 @@ eve admin access-requests approve <id>          Approve + provision
 eve system health                               Platform health
 eve system status                               System overview
 eve agents sync --project <id>                  Sync agent config
+eve agents list                                 Gateway-visible agents
 eve packs status                                Pack status
+eve db status --env <env>                       Managed DB health
+eve db rotate-credentials --env <env>           Rotate DB creds
+eve db scale --env <env> --class <class>        Scale DB tier
+eve registry list                               List image repos
+eve registry tags <service>                     List image tags
+eve registry stats                              Registry storage usage
+eve models list --managed                       Managed model catalog
+eve project spend <id> --since 7d               Project spend
+eve org spend <id> --since 30d                  Org-wide spend
+eve admin balance credit --org <id> --amount N  Credit balance
 ```
 
 ## Links

@@ -1041,4 +1041,353 @@ workflows:
       { cmd: 'eve build diagnose <id>', desc: 'Build spec + runs + artifacts + logs' },
     ],
   },
+  {
+    id: 'managed-db',
+    title: 'Managed Postgres',
+    subtitle: 'Zero-config databases',
+    icon: 'DB',
+    color: 'rose',
+    diagram: `graph TD
+    subgraph Manifest["Manifest Declaration"]
+      SVC["service: db\\nrole: managed_db"]
+      CLASS["class: db.p1"]
+      ENGINE["engine: postgres 16"]
+    end
+    subgraph Platform["Eve Platform"]
+      RECONCILER["DB Reconciler"]
+      INSTANCE["Backing Instance\\n(RDS / Cloud SQL)"]
+      TENANT["Tenant DB\\n(per-environment)"]
+    end
+    subgraph App["Application"]
+      URL["\${managed.db.url}"]
+      CREDS["Auto-rotated Credentials"]
+      PRIVATE["Private Network Only"]
+    end
+    SVC --> RECONCILER
+    RECONCILER --> INSTANCE
+    INSTANCE --> TENANT
+    TENANT --> URL
+    TENANT --> CREDS
+    CREDS --> PRIVATE`,
+    summary:
+      'Declare a managed database in your manifest and Eve provisions a Postgres instance per environment. Credentials auto-rotate, connections stay private, and the reconciler handles the lifecycle — no Terraform, no external DB providers.',
+    details: [
+      'Three DB modes: container (app-defined), external (user-provided URL), or managed (Eve-provisioned)',
+      'Manifest declaration: x-eve.role: managed_db with class, engine, and engine_version',
+      'Credential injection: ${managed.db.url} resolves to a full connection string at deploy time',
+      'Resource classes: db.p1, db.p2 tiers control capacity and pricing — overridable per environment',
+      'Credential rotation: eve db rotate-credentials generates new passwords without downtime',
+      'Tenant isolation: connection limits, timeouts, and storage ceilings on shared backing instances',
+      'Fail-fast deploys: deployer blocks if managed DB is not in ready state',
+      'Usage metering: hours and GB-hours tracked per tenant, charged via the balance ledger',
+    ],
+    commands: [
+      { cmd: 'eve db status --env staging', desc: 'Check database health and connection info' },
+      { cmd: 'eve db rotate-credentials --env staging', desc: 'Rotate DB credentials' },
+      { cmd: 'eve db scale --env production --class db.p2', desc: 'Scale to a larger resource class' },
+      { cmd: 'eve db destroy --env staging --force', desc: 'Remove managed database' },
+      { cmd: 'eve admin db register-instance ...', desc: 'Register a backing instance (admin)' },
+    ],
+    manifestExample: `services:
+  db:
+    x-eve:
+      role: managed_db
+      managed:
+        class: db.p1
+        engine: postgres
+        engine_version: "16"
+
+  api:
+    image: ghcr.io/myorg/api
+    environment:
+      DATABASE_URL: \${managed.db.url}
+
+environments:
+  production:
+    overrides:
+      services:
+        db:
+          x-eve:
+            managed:
+              class: db.p2  # scale up for prod`,
+  },
+  {
+    id: 'container-registry',
+    title: 'Eve-Native Registry',
+    subtitle: 'Zero-config image hosting',
+    icon: 'CR',
+    color: 'fuchsia',
+    diagram: `graph TD
+    subgraph Manifest["Manifest"]
+      OPT["registry: eve"]
+      SVC["service: api\\nimage: api"]
+    end
+    subgraph Platform["Eve Registry Service"]
+      DIST["OCI Distribution"]
+      AUTH["Token Auth\\n(scoped JWTs)"]
+      STORAGE["Storage Backend"]
+    end
+    subgraph Backends["Storage"]
+      S3["S3 / GCS"]
+      MINIO["MinIO"]
+      FS["Filesystem\\n(k3d local)"]
+    end
+    subgraph Deploy["Deploy"]
+      PULL["ImagePullSecret\\n(auto-created)"]
+      DIGEST["Digest-pinned\\nimage refs"]
+    end
+    OPT --> DIST
+    SVC --> DIST
+    DIST --> AUTH
+    AUTH --> STORAGE
+    STORAGE --> S3
+    STORAGE --> MINIO
+    STORAGE --> FS
+    DIST --> PULL
+    DIST --> DIGEST`,
+    summary:
+      'Set registry: eve in your manifest and the platform handles image storage, auth tokens, and pull secrets. No GHCR, no ECR, no registry credentials to manage. Builds push with short-lived JWTs; deploys pull with auto-created secrets.',
+    details: [
+      'One-line opt-in: registry: eve in manifest replaces all BYO registry configuration',
+      'OCI-compliant: runs the reference distribution used by Docker Hub, GHCR, and GitLab',
+      'Scoped tokens: 5-minute push JWTs for builds, 1-hour pull JWTs for deploys',
+      'Image namespace: registry.{domain}/{org_slug}/{project_slug}/{service}:{tag}',
+      'Storage backends: S3 (AWS), GCS (GCP), MinIO (self-hosted), filesystem (local dev)',
+      'Auto pull secrets: ImagePullSecrets created with platform credentials — no user config needed',
+      'Garbage collection: CronJob cleans unreferenced layers with configurable tag retention',
+      'Cost: ~$0.023/GB/month on S3 with cross-project layer deduplication',
+    ],
+    commands: [
+      { cmd: 'eve registry list', desc: 'List repos in current project' },
+      { cmd: 'eve registry tags <service>', desc: 'List tags for a service image' },
+      { cmd: 'eve registry gc --dry-run', desc: 'Preview garbage collection' },
+      { cmd: 'eve registry stats', desc: 'Storage usage per project' },
+    ],
+    manifestExample: `# Opt-in to Eve-native registry
+registry: eve
+
+services:
+  api:
+    image: api     # short name — Eve prefixes automatically
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports: [3000]
+
+  worker:
+    image: worker
+    build:
+      context: ./apps/worker
+
+# BYO registry still works unchanged:
+# registry:
+#   host: ghcr.io
+#   namespace: myorg`,
+  },
+  {
+    id: 'resource-management',
+    title: 'Resource Management',
+    subtitle: 'Budgets, receipts, and cost control',
+    icon: '$',
+    color: 'yellow',
+    diagram: `graph TD
+    subgraph Tracking["Execution Receipts"]
+      LLM_CALL["llm.call events"]
+      COMPUTE["Compute Accounting"]
+      TIMING["Phase Timing"]
+      RECEIPT["Attempt Receipt\\n(JSONB)"]
+    end
+    subgraph Pricing["Pricing Engine"]
+      RATES["Rate Cards"]
+      FX["FX Snapshots"]
+      CLASSES["Resource Classes\\njob.c1 / job.c2"]
+    end
+    subgraph Control["Budget Enforcement"]
+      PRE["Pre-admission\\n(orchestrator)"]
+      REALTIME["Real-time\\n(worker)"]
+      SUSPEND["Environment\\nSuspension"]
+    end
+    subgraph Ledger["Balance Ledger"]
+      CREDITS["Credits"]
+      SPEND["Spend Records"]
+      BALANCE["Org Balance"]
+    end
+    LLM_CALL --> RECEIPT
+    COMPUTE --> RECEIPT
+    TIMING --> RECEIPT
+    RECEIPT --> RATES
+    RATES --> FX
+    FX --> SPEND
+    CLASSES --> RATES
+    SPEND --> BALANCE
+    BALANCE --> PRE
+    BALANCE --> REALTIME
+    BALANCE --> SUSPEND`,
+    summary:
+      'Every job produces an execution receipt with time, tokens, and cost. Rate cards price compute and LLM usage. Budget enforcement blocks work when spend exceeds limits — pre-admission at the orchestrator, real-time in the worker.',
+    details: [
+      'Execution receipts: self-contained JSONB on each attempt with timing, LLM usage, compute, and dual costs',
+      'BYOK vs Managed: user-key models tracked for visibility but not billed; managed models are billed',
+      'Dual cost view: base cost (USD, all models) for transparency; billed cost (billing currency + markup)',
+      'Resource classes: job.c1, job.c2 SKUs drive K8s pod sizing and per-second billing',
+      'LLM call events: harnesses emit provider, model, source, status, and token usage per call',
+      'Pre-admission guard: orchestrator blocks job claim if org balance is insufficient',
+      'Real-time enforcement: worker terminates job if running cost exceeds max_cost limit',
+      'Environment suspension: auto-scales to zero when balance drops below threshold; blocks deploys until funded',
+    ],
+    commands: [
+      { cmd: 'eve job receipt <id> --json', desc: 'View execution receipt with cost breakdown' },
+      { cmd: 'eve project spend <id> --since 7d', desc: 'Project spend summary' },
+      { cmd: 'eve org spend <id> --since 30d --currency usd', desc: 'Organization-wide spend' },
+      { cmd: 'eve job compare <id> --attempt 1 --attempt 2', desc: 'Compare attempt costs' },
+      { cmd: 'eve admin balance credit --org org_xxx --amount 100', desc: 'Credit an org balance (admin)' },
+    ],
+    manifestExample: `x-eve:
+  defaults:
+    resource_class: job.c2
+    max_cost:
+      currency: usd
+      amount: 5.00
+    max_tokens: 100000
+
+# Resource classes control pod sizing + billing:
+#   job.c1 — 0.5 CPU, 512Mi  (general tasks)
+#   job.c2 — 1 CPU, 1Gi      (heavy workloads)
+#   job.c4 — 2 CPU, 2Gi      (compute-intensive)`,
+  },
+  {
+    id: 'gateway-discovery',
+    title: 'Gateway Discovery',
+    subtitle: 'Three-layer agent visibility',
+    icon: 'GD',
+    color: 'stone',
+    diagram: `graph TD
+    subgraph Policy["Discovery Levels"]
+      NONE["none\\nHidden from chat"]
+      DISC["discoverable\\nVisible, not routable"]
+      ROUTE["routable\\nFully addressable"]
+    end
+    subgraph Layers["Config Layers"]
+      PACK["Pack Default"]
+      AGENT["Agent Override"]
+      PROJECT["Project Overlay"]
+    end
+    subgraph Clients["Client Restrictions"]
+      SLACK["slack"]
+      NOSTR["nostr"]
+    end
+    subgraph Result["Chat Routing"]
+      LIST["@eve agents list\\nShows discoverable + routable"]
+      INVOKE["@eve slug message\\nRoutable only"]
+      REJECT["Hidden agents\\nRejected with error"]
+    end
+    PACK --> AGENT
+    AGENT --> PROJECT
+    PROJECT --> Result
+    ROUTE --> SLACK
+    ROUTE --> NOSTR`,
+    summary:
+      'Agents opt in to chat visibility through a three-layer policy: pack default, agent override, project overlay. Backend workers stay hidden by default — only routable agents can be invoked via Slack or Nostr.',
+    details: [
+      'Three levels: none (hidden), discoverable (listed but not invokable), routable (fully addressable)',
+      'Three config layers: pack default → agent override → project overlay — each can narrow or widen',
+      'Safe default: agents without a gateway block inherit the pack default or none (opt-in, not opt-out)',
+      'Client restrictions: gateway.clients array limits which chat platforms can reach an agent',
+      'Routing enforcement: org-level slug routing rejects none/discoverable agents with a helpful error',
+      'Teams unaffected: internal dispatch and pipeline agent steps always work regardless of policy',
+      'Directory filtering: @eve agents list and eve agents list only show discoverable + routable agents',
+      'Migration: existing agents default to routable for backwards compatibility; CLI warns on changes',
+    ],
+    commands: [
+      { cmd: 'eve agents list', desc: 'List gateway-visible agents' },
+      { cmd: 'eve agents sync --project <id>', desc: 'Sync agent config including gateway policy' },
+      { cmd: '@eve agents list', desc: 'Chat directory (filtered by policy)' },
+      { cmd: '@eve <slug> <message>', desc: 'Invoke a routable agent via chat' },
+    ],
+    manifestExample: `# pack.yaml — safe default for the pack
+gateway:
+  default_policy: none
+
+# agents.yaml — per-agent overrides
+agents:
+  factory_intake:
+    slug: factory-intake
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  factory_coder:
+    slug: factory-coder
+    # inherits pack default: none (hidden)
+
+  reviewer_security:
+    slug: reviewer-security
+    gateway:
+      policy: discoverable
+      # visible in directory, not directly invokable`,
+  },
+  {
+    id: 'managed-models',
+    title: 'Managed Models',
+    subtitle: 'Multi-scope LLM registry',
+    icon: 'MM',
+    color: 'zinc',
+    diagram: `graph TD
+    subgraph Scopes["Model Registry"]
+      PLATFORM["Platform Models\\n(system defaults)"]
+      ORG["Org Models\\n(org admin adds)"]
+      PROJECT["Project Models\\n(project admin adds)"]
+    end
+    subgraph Resolution["Merge Resolution"]
+      MERGE["project → org → platform"]
+      NAME["managed/model-name"]
+    end
+    subgraph Harnesses["Harness-Aware Routing"]
+      CLAUDE["claude\\n→ ANTHROPIC_API_KEY"]
+      CODE["code\\n→ OPENAI_API_KEY"]
+      ZAI["zai\\n→ ZAI_API_KEY"]
+      GEMINI["gemini\\n→ GOOGLE_API_KEY"]
+    end
+    subgraph Secrets["Credential Sources"]
+      PLATFORM_SEC["platform.* secrets"]
+      CASCADED["Cascaded org/project\\nsecrets"]
+    end
+    PLATFORM --> MERGE
+    ORG --> MERGE
+    PROJECT --> MERGE
+    MERGE --> NAME
+    NAME --> Harnesses
+    Harnesses --> Secrets`,
+    summary:
+      'Managed models live in a three-scope registry — platform, org, project — merged with project winning. Each model declares its harness, so the worker injects the right API key automatically. Org and project admins self-service register models from any provider.',
+    details: [
+      'Three scopes: platform (system defaults), org (admin-managed), project (admin-managed) — project wins on conflict',
+      'Harness-aware: each model declares harness (claude, code, zai, gemini) for correct env var injection',
+      'Naming convention: managed/model-name prefix — worker resolves from merged registry at claim time',
+      'Self-service: org and project admins add models via API without platform admin involvement',
+      'Scoped secrets: org/project models use cascaded secrets; platform models use platform.* prefix',
+      'Default catalog: DeepSeek R1, Llama 3.3, Kimi K2.5 via GMI Cloud as platform baseline',
+      'BYOK coexistence: managed/ prefix models billed by platform; unprefixed models use user API keys',
+      'Resolution timing: models resolved after secret materialization so cascaded secrets are available',
+    ],
+    commands: [
+      { cmd: 'eve models list --managed', desc: 'List available managed models' },
+      { cmd: 'eve job create --model managed/deepseek-r1 "..."', desc: 'Use a managed model' },
+      { cmd: 'eve secrets set GMICLOUD_API_KEY sk-... --org org_xxx', desc: 'Set org-level model credentials' },
+    ],
+    manifestExample: `x-eve:
+  defaults:
+    harness: mclaude
+    harness_options:
+      model: managed/deepseek-r1
+
+# Org-level model registration (API):
+# PUT /orgs/:id/models/my-custom-llm
+# {
+#   "harness": "code",
+#   "base_url": "https://api.provider.com/v1",
+#   "model_id": "custom-model-v1",
+#   "secret_env_var": "CUSTOM_API_KEY"
+# }`,
+  },
 ]
