@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { CapabilityCard } from '../components/CapabilityCard'
-import { capabilities } from '../data/capabilities'
+import { capabilities, CATEGORY_ORDER, CATEGORY_LABELS } from '../data/capabilities'
 
 export function Home() {
   return (
@@ -109,16 +109,27 @@ export function Home() {
         </p>
       </section>
 
-      {/* Capability Grid */}
+      {/* Capability Grid — grouped by category */}
       <section className="max-w-5xl mx-auto px-6 pb-24">
         <h2 className="text-2xl font-bold text-(--color-text) mb-8">
           What Agents Can Do
         </h2>
-        <div className="grid sm:grid-cols-2 gap-4">
-          {capabilities.map((cap) => (
-            <CapabilityCard key={cap.id} cap={cap} />
-          ))}
-        </div>
+        {CATEGORY_ORDER.map((cat) => {
+          const caps = capabilities.filter((c) => c.category === cat)
+          if (caps.length === 0) return null
+          return (
+            <div key={cat} className="mb-10">
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-(--color-text-3) mb-4">
+                {CATEGORY_LABELS[cat]}
+              </h3>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {caps.map((cap) => (
+                  <CapabilityCard key={cap.id} cap={cap} />
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </section>
 
       {/* Footer */}

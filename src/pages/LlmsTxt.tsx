@@ -1,4 +1,4 @@
-import { capabilities } from '../data/capabilities'
+import { capabilities, CATEGORY_ORDER, CATEGORY_LABELS } from '../data/capabilities'
 
 function generateLlmsTxt(): string {
   const lines: string[] = [
@@ -123,19 +123,31 @@ function generateLlmsTxt(): string {
   ]
 
   lines.push('## Capability Reference', '')
-  for (const cap of capabilities) {
-    lines.push(`### ${cap.title}`, '')
-    lines.push(cap.summary, '')
-    for (const d of cap.details) {
-      lines.push(`- ${d}`)
-    }
-    lines.push('')
-    if (cap.commands.length > 0) {
-      lines.push('Commands:')
-      for (const c of cap.commands) {
-        lines.push(`  ${c.cmd} — ${c.desc}`)
+  for (const cat of CATEGORY_ORDER) {
+    const caps = capabilities.filter((c) => c.category === cat)
+    if (caps.length === 0) continue
+    lines.push(`### ${CATEGORY_LABELS[cat]}`, '')
+    for (const cap of caps) {
+      lines.push(`#### ${cap.title}`, '')
+      if (cap.features.length > 0) {
+        lines.push(`Features: ${cap.features.join(', ')}`)
+      }
+      if (cap.tags.length > 0) {
+        lines.push(`Tags: ${cap.tags.join(', ')}`)
       }
       lines.push('')
+      lines.push(cap.summary, '')
+      for (const d of cap.details) {
+        lines.push(`- ${d}`)
+      }
+      lines.push('')
+      if (cap.commands.length > 0) {
+        lines.push('Commands:')
+        for (const c of cap.commands) {
+          lines.push(`  ${c.cmd} — ${c.desc}`)
+        }
+        lines.push('')
+      }
     }
   }
 

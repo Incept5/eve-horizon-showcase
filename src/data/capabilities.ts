@@ -1,9 +1,37 @@
+export type CapabilityCategory =
+  | 'getting-started'
+  | 'core'
+  | 'agents'
+  | 'ci-cd'
+  | 'infrastructure'
+
+export const CATEGORY_LABELS: Record<CapabilityCategory, string> = {
+  'getting-started': 'Getting Started',
+  'core': 'Core Platform',
+  'agents': 'Agent System',
+  'ci-cd': 'CI/CD & Events',
+  'infrastructure': 'Infrastructure & Security',
+}
+
+export const CATEGORY_ORDER: CapabilityCategory[] = [
+  'getting-started',
+  'core',
+  'agents',
+  'ci-cd',
+  'infrastructure',
+]
+
 export interface Capability {
   id: string
   title: string
   subtitle: string
   icon: string
   color: string
+  category: CapabilityCategory
+  /** Canonical feature IDs from the Eve feature catalog (see eve-app-marketplace.md) */
+  features: string[]
+  /** Free-form tags for fine-grained search */
+  tags: string[]
   diagram: string
   summary: string
   details: string[]
@@ -18,6 +46,9 @@ export const capabilities: Capability[] = [
     subtitle: 'Zero to running in minutes',
     icon: 'GO',
     color: 'green',
+    category: 'getting-started',
+    features: ['skills'],
+    tags: ['bootstrap', 'auth', 'ssh', 'access-request', 'onboarding'],
     diagram: `graph TD
     subgraph Start["Install"]
       INSTALL["npm install -g @eve-horizon/cli"]
@@ -76,6 +107,9 @@ export const capabilities: Capability[] = [
     subtitle: 'How agents connect',
     icon: '{}',
     color: 'blue',
+    category: 'core',
+    features: [],
+    tags: ['architecture', 'api', 'cli', 'k8s', 'postgres'],
     diagram: `graph TD
     subgraph Interfaces
       CLI[Eve CLI]
@@ -136,6 +170,9 @@ export const capabilities: Capability[] = [
     subtitle: 'Single source of truth',
     icon: 'M',
     color: 'violet',
+    category: 'core',
+    features: ['ingress', 'healthchecks', 'api-spec', 'secrets-interpolation', 'storage', 'file-mounts'],
+    tags: ['manifest', 'compose', 'yaml', 'services', 'environments', 'ingress', 'secrets'],
     diagram: `graph TD
     subgraph ManifestFile[".eve/manifest.yaml"]
       SCHEMA[schema: eve/compose/v1]
@@ -250,6 +287,9 @@ x-eve:
     subtitle: 'Ship a team of agents in one package',
     icon: 'AP',
     color: 'pink',
+    category: 'agents',
+    features: ['agent-packs', 'chat-routing', 'multi-agent', 'skills'],
+    tags: ['agents', 'packs', 'teams', 'relay', 'skills', 'chat'],
     diagram: `graph LR
     subgraph Pack["software-factory pack"]
       direction TB
@@ -350,6 +390,9 @@ routes:
     subtitle: 'Multi-model execution',
     icon: 'H',
     color: 'emerald',
+    category: 'agents',
+    features: ['harness-profiles'],
+    tags: ['harness', 'claude', 'codex', 'gemini', 'zai', 'models', 'profiles', 'sandbox'],
     diagram: `graph TD
     subgraph Profiles[Harness Profiles]
       P1["primary-orchestrator"]
@@ -429,6 +472,9 @@ routes:
     subtitle: 'The unit of all work',
     icon: 'J',
     color: 'green',
+    category: 'core',
+    features: [],
+    tags: ['jobs', 'phases', 'priority', 'dependencies', 'review', 'hierarchy'],
     diagram: `stateDiagram-v2
     [*] --> idea
     idea --> backlog
@@ -468,6 +514,9 @@ routes:
     subtitle: 'Branch, commit, push policies',
     icon: 'G',
     color: 'lime',
+    category: 'core',
+    features: ['git-controls'],
+    tags: ['git', 'branch', 'commit', 'push', 'workspace', 'ref-policy'],
     diagram: `graph TD
     subgraph JobConfig[Job Git Config]
       REF["ref: main"]
@@ -533,6 +582,9 @@ routes:
     subtitle: 'Agents coordinating agents',
     icon: 'O',
     color: 'purple',
+    category: 'agents',
+    features: ['multi-agent'],
+    tags: ['orchestration', 'sub-jobs', 'fanout', 'relay', 'council', 'coordination', 'threads'],
     diagram: `graph TD
     LEAD[Lead Agent]
     LEAD -->|spawns| A[Sub-Agent A]
@@ -571,6 +623,9 @@ routes:
     subtitle: 'Deterministic CI/CD',
     icon: 'P',
     color: 'orange',
+    category: 'ci-cd',
+    features: ['build-pipeline', 'release-promotion', 'deploy-pipeline', 'workflows', 'event-triggers', 'github-triggers', 'cron-triggers'],
+    tags: ['pipeline', 'build', 'release', 'deploy', 'ci-cd', 'triggers', 'promotion'],
     diagram: `graph LR
     subgraph Trigger
       GH_PUSH[GitHub Push]
@@ -642,6 +697,9 @@ workflows:
     subtitle: 'First-class image construction',
     icon: 'B',
     color: 'sky',
+    category: 'ci-cd',
+    features: ['build-pipeline'],
+    tags: ['build', 'docker', 'buildkit', 'buildx', 'kaniko', 'image', 'digest', 'oci'],
     diagram: `graph TD
     subgraph Input
       MANIFEST["Manifest"]
@@ -705,6 +763,9 @@ workflows:
     subtitle: 'Multi-channel conversations',
     icon: 'C',
     color: 'cyan',
+    category: 'agents',
+    features: ['chat-routing'],
+    tags: ['chat', 'slack', 'nostr', 'gateway', 'threads', 'conversations'],
     diagram: `graph LR
     subgraph Sources
       S1[Slack]
@@ -752,6 +813,9 @@ workflows:
     subtitle: 'SSH, Nostr, and beyond',
     icon: 'ID',
     color: 'amber',
+    category: 'infrastructure',
+    features: [],
+    tags: ['auth', 'identity', 'ssh', 'nostr', 'jwt', 'login', 'invite'],
     diagram: `graph TD
     subgraph Providers
       SSH[SSH Keys]
@@ -799,6 +863,9 @@ workflows:
     subtitle: 'Agents get only what they need',
     icon: 'S',
     color: 'red',
+    category: 'infrastructure',
+    features: ['secrets-interpolation'],
+    tags: ['secrets', 'encryption', 'aes-256', 'scopes', 'interpolation', 'env-vars'],
     diagram: `graph TD
     subgraph Scopes["Scope Hierarchy (highest wins)"]
       SYS[System Secrets]
@@ -854,6 +921,9 @@ workflows:
     subtitle: 'One observable trigger log',
     icon: 'E',
     color: 'teal',
+    category: 'ci-cd',
+    features: ['event-triggers', 'github-triggers', 'cron-triggers'],
+    tags: ['events', 'triggers', 'github', 'cron', 'webhooks', 'dedupe', 'spine'],
     diagram: `graph TD
     subgraph Sources
       GH[GitHub push/PR]
@@ -924,6 +994,9 @@ workflows:
     subtitle: 'Knowledge that travels with code',
     icon: 'SK',
     color: 'indigo',
+    category: 'agents',
+    features: ['skills'],
+    tags: ['skills', 'skill-md', 'packs', 'repo-local', 'harness', 'on-clone'],
     diagram: `graph TD
     subgraph Repository
       TXT[skills.txt]
@@ -978,6 +1051,9 @@ workflows:
     subtitle: 'Timing, cost, and diagnostics',
     icon: 'OB',
     color: 'slate',
+    category: 'infrastructure',
+    features: [],
+    tags: ['observability', 'logs', 'diagnostics', 'timing', 'cost', 'follow', 'health'],
     diagram: `graph TD
     subgraph JobTelemetry[Job-Level Telemetry]
       FOLLOW["eve job follow"]
@@ -1047,6 +1123,9 @@ workflows:
     subtitle: 'Zero-config databases',
     icon: 'DB',
     color: 'rose',
+    category: 'infrastructure',
+    features: ['managed-db'],
+    tags: ['postgres', 'database', 'managed', 'rds', 'cloud-sql', 'credentials', 'dbaas'],
     diagram: `graph TD
     subgraph Manifest["Manifest Declaration"]
       SVC["service: db\\nrole: managed_db"]
@@ -1117,6 +1196,9 @@ environments:
     subtitle: 'Zero-config image hosting',
     icon: 'CR',
     color: 'fuchsia',
+    category: 'infrastructure',
+    features: ['eve-registry'],
+    tags: ['registry', 'oci', 'docker', 'images', 's3', 'minio', 'ghcr'],
     diagram: `graph TD
     subgraph Manifest["Manifest"]
       OPT["registry: eve"]
@@ -1190,6 +1272,9 @@ services:
     subtitle: 'Budgets, receipts, and cost control',
     icon: '$',
     color: 'yellow',
+    category: 'infrastructure',
+    features: ['resource-classes'],
+    tags: ['billing', 'budgets', 'cost', 'receipts', 'metering', 'resource-classes', 'ledger'],
     diagram: `graph TD
     subgraph Tracking["Execution Receipts"]
       LLM_CALL["llm.call events"]
@@ -1261,6 +1346,9 @@ services:
     subtitle: 'Three-layer agent visibility',
     icon: 'GD',
     color: 'stone',
+    category: 'agents',
+    features: ['gateway-discovery', 'chat-routing'],
+    tags: ['gateway', 'discovery', 'routing', 'policy', 'slack', 'nostr', 'visibility'],
     diagram: `graph TD
     subgraph Policy["Discovery Levels"]
       NONE["none\\nHidden from chat"]
@@ -1332,6 +1420,9 @@ agents:
     subtitle: 'Multi-scope LLM registry',
     icon: 'MM',
     color: 'zinc',
+    category: 'agents',
+    features: ['managed-models'],
+    tags: ['models', 'llm', 'managed', 'deepseek', 'byok', 'registry', 'multi-scope'],
     diagram: `graph TD
     subgraph Scopes["Model Registry"]
       PLATFORM["Platform Models\\n(system defaults)"]
