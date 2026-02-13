@@ -25,3 +25,6 @@ env.secrets
 *.njsproj
 *.sln
 *.sw?
+.agent/skills
+.agents/skills
+.claude/skills
