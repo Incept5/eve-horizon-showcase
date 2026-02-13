@@ -3,4 +3,4 @@
 https://github.com/incept5/eve-skillpacks
 
 # Local skills
-./skills
+./private-skills
