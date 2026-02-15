@@ -201,13 +201,6 @@ Naming: managed/model-name prefix. Default catalog: DeepSeek R1, Llama 3.3, Kimi
 Self-service: org/project admins register models via API. BYOK (unprefixed) coexists with managed.
 Commands: eve models list --managed, eve job create --model managed/deepseek-r1.
 
-## Gateway Discovery Policy
-
-Three levels: none (hidden), discoverable (listed), routable (fully addressable via chat).
-Config layers: pack default -> agent override -> project overlay. Safe default: none.
-Client restrictions: gateway.clients limits to [slack] or [nostr]. Teams/pipelines unaffected.
-Commands: eve agents list, @eve agents list, @eve <slug> <message>.
-
 ## Event Spine
 
 Sources: github, slack, cron, manual, app, system, runner.
@@ -218,7 +211,11 @@ Trigger routing: orchestrator matches events to manifest triggers every 5s.
 
 Slack (webhook) + Nostr (relay subscription). Agent slug routing.
 @eve <agent-slug> <message>. Thread continuity across messages.
-Passive listeners. Chat config via x-eve.chat.config_path.
+Discovery policy: none (hidden), discoverable (listed), routable (invokable).
+Policy layers: pack default -> agent override -> project overlay; safe default is opt-in.
+Client restrictions: gateway.clients limits exposure per channel (for example slack-only).
+Passive listeners. Teams/pipelines unaffected by gateway visibility.
+Commands: eve agents list, @eve agents list, @eve <slug> <message>, eve agents sync.
 
 ## Identity Providers
 

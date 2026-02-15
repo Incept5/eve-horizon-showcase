@@ -764,8 +764,8 @@ workflows:
     icon: 'C',
     color: 'cyan',
     category: 'agents',
-    features: ['chat-routing'],
-    tags: ['chat', 'slack', 'nostr', 'gateway', 'threads', 'conversations'],
+    features: ['chat-routing', 'gateway-discovery'],
+    tags: ['chat', 'slack', 'nostr', 'gateway', 'threads', 'conversations', 'discovery', 'policy', 'visibility'],
     diagram: `graph LR
     subgraph Sources
       S1[Slack]
@@ -775,6 +775,11 @@ workflows:
       NORM[Normalize]
       ROUTE[Route]
     end
+    subgraph Policy
+      NONE["none\\nHidden"]
+      DISC["discoverable\\nList only"]
+      RT["routable\\nInvokable"]
+    end
     subgraph Work
       THREAD[Thread Context]
       JOB[Agent Job]
@@ -783,29 +788,50 @@ workflows:
     S1 --> NORM
     S2 --> NORM
     NORM --> ROUTE
+    ROUTE --> Policy
     ROUTE --> THREAD
     THREAD --> JOB
     JOB --> REPLY
     REPLY -.-> S1
     REPLY -.-> S2`,
     summary:
-      'Messages from Slack and Nostr are normalized by the Chat Gateway, routed to the right agent, and executed as jobs. Thread context preserves full conversation history across turns.',
+      'Messages from Slack and Nostr are normalized by the Chat Gateway, routed to agents as jobs, and replied back in-thread. Discovery policy controls which agents are visible or invokable, so chat exposure stays intentional instead of implicit.',
     details: [
       'Gateway plugin architecture: providers register as factories with transport type',
       'Slack: webhook transport with signature verification and URL challenge',
       'Nostr: subscription transport via relay pools (NIP-04 DMs + Kind 1 mentions)',
       'Agent slug routing: @eve <agent-slug> <message> in Slack',
-      'Passive listeners: agents can watch channels without being mentioned',
-      'Thread continuity: same thread_key → same thread_id across messages',
-      'Thread context in job hints: prior messages with direction, actor, text, timestamp',
+      'Discovery levels: none (hidden), discoverable (listed), routable (fully addressable via chat)',
+      'Policy layering: pack default → agent override → project overlay, with safe opt-in defaults',
+      'Client restrictions: gateway.clients limits routing scope to selected channels (for example slack-only)',
+      'Thread continuity + listeners: same thread_key → same thread_id across messages, with optional passive listening',
+      'Directory filtering: @eve agents list and eve agents list only show discoverable/routable agents',
     ],
     commands: [
       { cmd: '@eve <agent> <message>', desc: 'Slack: invoke agent directly' },
+      { cmd: '@eve agents list', desc: 'Slack: list discoverable/routable agents' },
+      { cmd: 'eve agents list', desc: 'CLI: list gateway-visible agents' },
       { cmd: '@eve agents listen <slug>', desc: 'Slack: passive channel listener' },
       { cmd: 'eve chat simulate --text "hello"', desc: 'Test routing without Slack' },
       { cmd: 'eve agents sync --project <id>', desc: 'Push agent config from repo' },
       { cmd: 'eve org update <id> --default-agent <slug>', desc: 'Set fallback agent' },
     ],
+    manifestExample: `# pack.yaml — safe default for chat exposure
+gateway:
+  default_policy: none
+
+# agents.yaml — per-agent chat visibility
+agents:
+  factory_intake:
+    slug: factory-intake
+    gateway:
+      policy: routable
+      clients: [slack]
+
+  reviewer_security:
+    slug: reviewer-security
+    gateway:
+      policy: discoverable`,
   },
   {
     id: 'identity',
@@ -1339,80 +1365,6 @@ services:
 #   job.c1 — 0.5 CPU, 512Mi  (general tasks)
 #   job.c2 — 1 CPU, 1Gi      (heavy workloads)
 #   job.c4 — 2 CPU, 2Gi      (compute-intensive)`,
-  },
-  {
-    id: 'gateway-discovery',
-    title: 'Gateway Discovery',
-    subtitle: 'Three-layer agent visibility',
-    icon: 'GD',
-    color: 'stone',
-    category: 'agents',
-    features: ['gateway-discovery', 'chat-routing'],
-    tags: ['gateway', 'discovery', 'routing', 'policy', 'slack', 'nostr', 'visibility'],
-    diagram: `graph TD
-    subgraph Policy["Discovery Levels"]
-      NONE["none\\nHidden from chat"]
-      DISC["discoverable\\nVisible, not routable"]
-      ROUTE["routable\\nFully addressable"]
-    end
-    subgraph Layers["Config Layers"]
-      PACK["Pack Default"]
-      AGENT["Agent Override"]
-      PROJECT["Project Overlay"]
-    end
-    subgraph Clients["Client Restrictions"]
-      SLACK["slack"]
-      NOSTR["nostr"]
-    end
-    subgraph Result["Chat Routing"]
-      LIST["@eve agents list\\nShows discoverable + routable"]
-      INVOKE["@eve slug message\\nRoutable only"]
-      REJECT["Hidden agents\\nRejected with error"]
-    end
-    PACK --> AGENT
-    AGENT --> PROJECT
-    PROJECT --> Result
-    ROUTE --> SLACK
-    ROUTE --> NOSTR`,
-    summary:
-      'Agents opt in to chat visibility through a three-layer policy: pack default, agent override, project overlay. Backend workers stay hidden by default — only routable agents can be invoked via Slack or Nostr.',
-    details: [
-      'Three levels: none (hidden), discoverable (listed but not invokable), routable (fully addressable)',
-      'Three config layers: pack default → agent override → project overlay — each can narrow or widen',
-      'Safe default: agents without a gateway block inherit the pack default or none (opt-in, not opt-out)',
-      'Client restrictions: gateway.clients array limits which chat platforms can reach an agent',
-      'Routing enforcement: org-level slug routing rejects none/discoverable agents with a helpful error',
-      'Teams unaffected: internal dispatch and pipeline agent steps always work regardless of policy',
-      'Directory filtering: @eve agents list and eve agents list only show discoverable + routable agents',
-      'Migration: existing agents default to routable for backwards compatibility; CLI warns on changes',
-    ],
-    commands: [
-      { cmd: 'eve agents list', desc: 'List gateway-visible agents' },
-      { cmd: 'eve agents sync --project <id>', desc: 'Sync agent config including gateway policy' },
-      { cmd: '@eve agents list', desc: 'Chat directory (filtered by policy)' },
-      { cmd: '@eve <slug> <message>', desc: 'Invoke a routable agent via chat' },
-    ],
-    manifestExample: `# pack.yaml — safe default for the pack
-gateway:
-  default_policy: none
-
-# agents.yaml — per-agent overrides
-agents:
-  factory_intake:
-    slug: factory-intake
-    gateway:
-      policy: routable
-      clients: [slack]
-
-  factory_coder:
-    slug: factory-coder
-    # inherits pack default: none (hidden)
-
-  reviewer_security:
-    slug: reviewer-security
-    gateway:
-      policy: discoverable
-      # visible in directory, not directly invokable`,
   },
   {
     id: 'managed-models',

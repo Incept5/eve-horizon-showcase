@@ -5,30 +5,30 @@ description: Sync the Eve Horizon showcase with the current state of the platfor
 
 # Update Showcase
 
-You are updating the Eve Horizon showcase SPA to reflect the current state of the Eve Horizon platform. The showcase lives in this repo; the platform lives at `../eve-horizon`.
+Sync the Eve Horizon showcase SPA with the current state of the Eve Horizon platform. The showcase lives in this repo; the platform lives at `../eve-horizon`.
 
 ## Philosophy
 
-The showcase is a curated, high-quality window into the platform — not a 1:1 mirror. Every card should earn its place. When the platform evolves, cards may need to be added, rewritten, merged, split, reordered, or removed. Always step back and assess the whole before touching the parts.
+Treat the showcase as a curated, high-quality window into the platform — not a 1:1 mirror. Every card must earn its place. When the platform evolves, add, rewrite, merge, split, reorder, or remove cards as needed. Step back and assess the whole before touching the parts.
 
 ## Workflow
 
 ### 1. Gather platform reality
 
-Read the eve-horizon git log for recent feature and doc commits:
+Pull the eve-horizon git log for recent feature and doc commits:
 
 ```bash
 git -C ../eve-horizon log --oneline --since="<last-update-date>" --no-merges | grep -iE "feat:|docs:"
 ```
 
-If the scope is unclear, go deeper — read plan docs in `../eve-horizon/docs/plans/` for any feature that looks significant. Use subagents for parallel research when there are multiple features to investigate.
+If the scope is unclear, go deeper — read plan docs in `../eve-horizon/docs/plans/` for any feature that looks significant.
 
 ### 2. Inventory current showcase
 
 Read `src/data/capabilities.ts` and build a mental map:
-- What capabilities exist (id, title, summary)?
-- What's the current ordering logic?
-- Are any cards stale, overlapping, or missing context from recent platform changes?
+- Which capabilities exist (id, title, summary)?
+- What ordering logic is in place?
+- Which cards are stale, overlapping, or missing context from recent platform changes?
 
 ### 3. Decide what changes are needed
 
@@ -36,12 +36,12 @@ This is the critical thinking step. For each platform feature found in step 1, d
 
 - **New card** — feature is genuinely distinct and substantial enough to warrant its own card
 - **Update existing card** — feature extends or changes something already showcased
-- **Merge cards** — two cards now cover overlapping ground and should be combined
-- **Split card** — a card has grown too broad and should become two focused cards
-- **Remove card** — a feature was removed or deprecated upstream
-- **Reorder** — the current sequence doesn't tell the best story anymore
+- **Merge cards** — two cards now cover overlapping ground; combine them
+- **Split card** — a card has grown too broad; break it into two focused cards
+- **Remove card** — feature was removed or deprecated upstream
+- **Reorder** — the current sequence no longer tells the best story
 
-Think about the ordering. Cards should flow logically:
+Order cards to flow logically:
 1. Getting started / onboarding
 2. Architecture / core concepts
 3. Configuration (manifest, git controls)
@@ -50,9 +50,28 @@ Think about the ordering. Cards should flow logically:
 6. Runtime (jobs, events, chat, identity, secrets, skills)
 7. Operations (observability, resource management)
 
-### 4. Implement changes
+### 4. Create tracked work items
 
-All capability content lives in `src/data/capabilities.ts`. The `Capability` interface:
+Create a work item for each change identified in step 3. Group them:
+
+- **Research items** (one per feature needing deep investigation) — spawn these as parallel workers, each reading the relevant plan doc in `../eve-horizon/docs/plans/` and returning a distilled summary: what it does, key concepts, CLI commands, manifest shape.
+- **Card authoring items** (one per card to create/update/merge/split/remove) — these depend on their corresponding research items. Author sequentially since all cards live in one file.
+- **Supporting file items** (Home.tsx stats, llms.txt update, build verify) — these depend on all card authoring completing. Run in parallel where independent.
+
+For single-card updates, skip the orchestration overhead and work directly.
+
+### 5. Research (parallel)
+
+For each research work item, spawn a parallel worker with a self-contained prompt:
+- The target feature name and relevant plan doc path
+- What to extract: summary, technical details, CLI commands, manifest examples, diagram concepts
+- Return format: structured notes ready to author a card from
+
+Collect all research results before proceeding to card authoring.
+
+### 6. Author cards
+
+Edit capability content in `src/data/capabilities.ts`. The `Capability` interface:
 
 ```typescript
 interface Capability {
@@ -72,25 +91,25 @@ interface Capability {
 **Colors** available in `src/components/CapabilityCard.tsx`:
 blue, green, purple, orange, cyan, amber, red, teal, indigo, slate, violet, pink, emerald, lime, sky, rose, fuchsia, yellow, stone, zinc.
 
-If you need a new color, add it to both `colorMap` and `iconColorMap` in CapabilityCard.tsx.
+To add a new color, update both `colorMap` and `iconColorMap` in CapabilityCard.tsx.
 
 **Diagrams**: Use mermaid graph TD, graph LR, or stateDiagram-v2. Use `\\n` for line breaks inside node labels. Escape `${...}` as `\${...}` in template literals.
 
 **Writing quality**:
-- Summaries should be punchy and concrete — what does it do, why does it matter
-- Details should be technical and precise — assume the reader is an engineer
-- Commands should be real `eve` CLI commands with accurate flags
-- Manifest examples should be valid YAML that could actually go in `.eve/manifest.yaml`
+- Make summaries punchy and concrete — what does it do, why does it matter
+- Keep details technical and precise — assume the reader is an engineer
+- Use real `eve` CLI commands with accurate flags
+- Write valid YAML that could actually go in `.eve/manifest.yaml`
 
-### 5. Update supporting files
+### 7. Update supporting files
 
-After changing capabilities.ts:
+After completing all card changes, update these in parallel:
 
 1. **Home page stats** — update the capability count in `src/pages/Home.tsx` (search for `Capability Areas`)
 2. **Static llms.txt** — update `public/llms.txt` with new/changed sections and CLI commands in the quick reference
-3. **LlmsTxt page** — `src/pages/LlmsTxt.tsx` auto-generates from capabilities data, no manual update needed
+3. **LlmsTxt page** — `src/pages/LlmsTxt.tsx` auto-generates from capabilities data; no manual update needed
 
-### 6. Verify
+### 8. Verify
 
 Run the production build — it must pass with zero errors:
 
@@ -103,7 +122,7 @@ Common issues:
 - `\\${...}` in diagrams evaluates as template expression — use `\${...}` instead
 - Missing colors in CapabilityCard.tsx colorMap/iconColorMap
 
-### 7. Deploy (if requested)
+### 9. Deploy (if requested)
 
 ```bash
 git add <changed files>
@@ -123,13 +142,14 @@ eve env deploy staging --ref main --repo-dir .
 | `src/pages/Home.tsx` | Landing page with stats grid |
 | `src/pages/Detail.tsx` | Capability detail page (reads from capabilities data) |
 | `src/pages/LlmsTxt.tsx` | Generated llms.txt page |
-| `public/llms.txt` | Static LLM-friendly reference (must be manually updated) |
+| `public/llms.txt` | Static LLM-friendly reference (update manually) |
 | `../eve-horizon/docs/plans/` | Platform feature plans for deep research |
 
 ## Anti-patterns
 
-- Don't add a card for every commit — only substantial, user-facing platform capabilities
-- Don't copy plan documents verbatim — distill into showcase-quality content
-- Don't leave stale stats — always update the count on Home.tsx
-- Don't forget llms.txt — it's the machine-readable contract and must stay in sync
-- Don't skip the build check — TypeScript catches template literal escaping bugs
+- Adding a card for every commit — only showcase substantial, user-facing capabilities
+- Copying plan documents verbatim — distill into showcase-quality content
+- Leaving stale stats — always update the count on Home.tsx
+- Forgetting llms.txt — it's the machine-readable contract and must stay in sync
+- Skipping the build check — TypeScript catches template literal escaping bugs
+- Serializing research — spawn parallel workers when investigating multiple features
