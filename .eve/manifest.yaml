@@ -1,14 +1,19 @@
 schema: eve/compose/v2
 project: eve-horizon-showcase
 
-registry: "eve"
+registry:
+  host: ghcr.io
+  namespace: incept5
+  auth:
+    username_secret: GHCR_USERNAME
+    token_secret: GHCR_TOKEN
 
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    image: eve-horizon-showcase
+    image: ghcr.io/incept5/eve-horizon-showcase
     ports: [3000]
     environment:
       NODE_ENV: production
