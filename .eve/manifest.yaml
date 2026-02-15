@@ -8,6 +8,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: eve-horizon-showcase
     ports: [3000]
     environment:
       NODE_ENV: production
