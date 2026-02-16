@@ -126,6 +126,55 @@ x-eve:
       ref: 0123456789abcdef0123456789abcdef01234567
 ```
 
+## Managed Environments
+
+Declare environments in the manifest and each gets an isolated K8s namespace with services, DB, ingress, and secrets.
+One manifest, N environments: test, staging, production, or any custom name.
+
+### Key Features
+- Isolated namespaces: each environment gets its own pods, networking, and storage
+- Per-environment overrides: customize config, resource classes, and DB tiers
+- Managed infrastructure: each env can have its own managed Postgres, auto-provisioned
+- Automatic ingress: URLs as {service}.{org}-{project}-{env}.{domain}
+- Approval gates: required_approvals on sensitive environments
+- Promotion: build once in test, promote same artifacts to staging/production
+- Ephemeral environments: spin up for PR review, tear down when done
+- Environment-scoped secrets: different credentials per environment
+
+### Environment CLI
+```
+eve env create staging --type persistent       Create environment
+eve env deploy staging --ref main --repo-dir . Deploy to environment
+eve env show <proj> <env>                      View environment status
+eve env diagnose <proj> <env>                  Health check + pod status
+eve env services <proj> <env>                  Per-service pod summary
+eve env logs <proj> <env> <service>            Stream service logs
+eve env destroy <proj> <env> --force           Tear down environment
+```
+
+### Manifest Example
+```yaml
+environments:
+  test:
+    pipeline: deploy
+  staging:
+    pipeline: deploy
+    overrides:
+      services:
+        api:
+          environment:
+            LOG_LEVEL: debug
+  production:
+    pipeline: deploy-prod
+    required_approvals: 1
+    overrides:
+      services:
+        db:
+          x-eve:
+            managed:
+              class: db.p2
+```
+
 ## Secret Interpolation
 
 ${secret.KEY} in environment values. Scopes: project -> user -> org -> system (highest wins).

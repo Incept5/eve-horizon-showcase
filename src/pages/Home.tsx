@@ -22,7 +22,7 @@ export function Home() {
           <div className="mt-12 flex justify-center gap-12 flex-wrap">
             {[
               ['5', 'Agent Harnesses'],
-              ['20', 'Capability Areas'],
+              ['21', 'Capability Areas'],
               ['3', 'Build Backends'],
               ['80+', 'CLI Commands'],
             ].map(([num, label]) => (

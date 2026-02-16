@@ -282,6 +282,101 @@ x-eve:
     secrets: [GITHUB_TOKEN, DB_PASSWORD]`,
   },
   {
+    id: 'environments',
+    title: 'Managed Environments',
+    subtitle: 'One manifest, N environments',
+    icon: 'ENV',
+    color: 'stone',
+    category: 'core',
+    features: ['managed-environments'],
+    tags: ['environments', 'staging', 'production', 'sandbox', 'namespace', 'isolation', 'promotion', 'approval-gates'],
+    diagram: `graph TD
+    subgraph Manifest[".eve/manifest.yaml"]
+      ENVS["environments:\\n  test / staging / production"]
+      OVERRIDES["Per-env overrides"]
+      GATES["Approval gates"]
+    end
+    subgraph test["test namespace"]
+      T_SVC["Services"]
+      T_DB["Managed DB\\n(db.p1)"]
+      T_URL["api.myorg-app-test.eh1..."]
+    end
+    subgraph staging["staging namespace"]
+      S_SVC["Services"]
+      S_DB["Managed DB\\n(db.p1)"]
+      S_URL["api.myorg-app-staging.eh1..."]
+    end
+    subgraph production["production namespace"]
+      P_SVC["Services"]
+      P_DB["Managed DB\\n(db.p2)"]
+      P_URL["api.myorg-app-production.eh1..."]
+      P_GATE["Approval Gate"]
+    end
+    ENVS --> test
+    ENVS --> staging
+    ENVS --> production
+    OVERRIDES --> T_SVC
+    OVERRIDES --> S_SVC
+    OVERRIDES --> P_SVC
+    GATES --> P_GATE`,
+    summary:
+      'Declare environments in your manifest and Eve gives each one an isolated Kubernetes namespace with its own services, database, ingress URL, and secrets. Spin up test, sandbox, staging, and production from the same manifest — or create ephemeral environments for PR review. Agents and humans manage them with the same CLI commands.',
+    details: [
+      'One manifest, many environments: declare test, staging, production (or any name) under the environments: key',
+      'Isolated namespaces: each environment gets its own K8s namespace — pods, networking, and storage are fully separated',
+      'Per-environment overrides: customize service config, resource classes, and DB tiers per environment',
+      'Managed infrastructure: each environment can have its own managed Postgres, auto-provisioned and credential-injected',
+      'Automatic ingress: URLs generated as {service}.{org}-{project}-{env}.{domain} — no manual DNS',
+      'Approval gates: protect sensitive environments with required_approvals before deploys proceed',
+      'Promotion model: build once in test, promote the same image digests through staging to production',
+      'Environment lifecycle: create → deploy → show → diagnose → suspend → destroy — all via CLI',
+      'Ephemeral environments: spin up a full stack for PR review or experiments, tear it down when done',
+      'Environment-scoped secrets: secrets resolve per-environment so test and production use different credentials',
+    ],
+    commands: [
+      { cmd: 'eve env create staging --type persistent', desc: 'Create a new environment' },
+      { cmd: 'eve env deploy staging --ref main --repo-dir .', desc: 'Deploy to an environment' },
+      { cmd: 'eve env show <proj> <env>', desc: 'View environment status and services' },
+      { cmd: 'eve env diagnose <proj> <env>', desc: 'Full health check with pod status and events' },
+      { cmd: 'eve env services <proj> <env>', desc: 'Per-service pod summary' },
+      { cmd: 'eve env logs <proj> <env> <service>', desc: 'Stream service logs' },
+      { cmd: 'eve env destroy <proj> <env> --force', desc: 'Tear down an environment' },
+    ],
+    manifestExample: `environments:
+  test:
+    pipeline: deploy
+    pipeline_inputs:
+      smoke_test: true
+
+  staging:
+    pipeline: deploy
+    pipeline_inputs:
+      smoke_test: true
+    overrides:
+      services:
+        api:
+          environment:
+            LOG_LEVEL: debug
+
+  production:
+    pipeline: deploy-prod
+    required_approvals: 1
+    overrides:
+      services:
+        api:
+          environment:
+            LOG_LEVEL: warn
+        db:
+          x-eve:
+            managed:
+              class: db.p2  # scale up for prod
+
+# Deploy any environment:
+#   eve env deploy test --ref main
+#   eve env deploy staging --ref main
+#   eve env deploy production --ref v1.2.0`,
+  },
+  {
     id: 'agent-packs',
     title: 'AgentPacks',
     subtitle: 'Ship a team of agents in one package',
