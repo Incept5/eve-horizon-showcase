@@ -19,10 +19,9 @@ Theme toggle (light/dark) persists to localStorage. Mermaid diagrams render via 
 
 ## Eve Project (Staging)
 
-- **Project ID:** proj_01kh3b8mdaeh49z467vdgccvys
-- **Org:** org_01kfzn79b5fvj8jtgr8stn66gh (Incept5)
+- **Project ID:** proj_01khjx10mheh0v51nxkv7rsq88
+- **Org:** org_Incept5 (Incept5)
 - **Slug:** evshow
-- **Staging env:** env_01kh3b90g6eh49z47n0262nv3m
 - **Profile:** staging (api: https://api.eh1.incept5.dev)
 
 ## Secrets
@@ -30,7 +29,7 @@ Theme toggle (light/dark) persists to localStorage. Mermaid diagrams render via 
 Project secrets are stored in `env.secrets` (gitignored). Import them into Eve with:
 
 ```bash
-eve secrets import --file env.secrets --project proj_01kh3b8mdaeh49z467vdgccvys
+eve secrets import --file env.secrets --project proj_01khjx10mheh0v51nxkv7rsq88
 ```
 
 ## Deploy
