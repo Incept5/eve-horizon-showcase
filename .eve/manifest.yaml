@@ -16,6 +16,7 @@ services:
       ingress:
         public: true
         port: 3000
+        alias: showcase
 
 environments:
   staging:
