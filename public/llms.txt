@@ -136,6 +136,7 @@ One manifest, N environments: test, staging, production, or any custom name.
 - Per-environment overrides: customize config, resource classes, and DB tiers
 - Managed infrastructure: each env can have its own managed Postgres, auto-provisioned
 - Automatic ingress: URLs as {service}.{org}-{project}-{env}.{domain}
+- Ingress aliases: x-eve.ingress.alias for clean vanity URLs — globally unique claims
 - Approval gates: required_approvals on sensitive environments
 - Promotion: build once in test, promote same artifacts to staging/production
 - Ephemeral environments: spin up for PR review, tear down when done
@@ -243,12 +244,44 @@ Budget enforcement: pre-admission (orchestrator), real-time (worker), environmen
 Balance ledger: immutable transactions with idempotency keys. FX snapshots for multi-currency.
 Commands: eve job receipt, eve project spend, eve org spend, eve job compare, eve admin balance credit.
 
-## Managed Models
+## Agent Memory
+
+Agents build institutional knowledge that persists across jobs.
+Memory namespaces: /agents/{slug}/memory/{category}/{key}.md (learnings, decisions, runbooks, conventions).
+Shared memory: /agents/shared/memory/ for team-wide knowledge.
+KV store: lightweight JSONB state with TTL — no schema required.
+Unified search: eve search queries across memory, docs, threads, attachments in one call.
+Thread distillation: eve thread distill converts thread decisions into durable memory docs.
+Context hydration: agents.yaml declares memory to pre-load — worker materializes .eve/context/ at job start.
+Commands: eve memory set/get/list, eve kv set/get/mget, eve search, eve thread distill.
+
+## Access Groups & Scoping
+
+Groups bundle users and service principals into named teams with scoped data-plane access.
+Default-deny: base roles grant control-plane only — data access requires explicit scoped bindings.
+Scoped bindings: restrict orgfs, orgdocs, envdb by path prefix or schema via scope_json.
+Database RLS: group context (app.group_ids) injected into sessions for row-level filtering.
+Policy-as-code: .eve/access.yaml v2 declares groups, roles, and scoped bindings.
+Commands: eve access groups create/list, eve access groups members add, eve access explain.
+
+## Org Filesystem
+
+Org-level persistent file storage with real-time sync via Syncthing.
+Modes: two-way, push-only, pull-only. Event-driven — updates visible within 5 seconds.
+Agents access org files via .org/ workspace mount. Scope-aware via orgfs:read/write bindings.
+Conflict resolution: pick-local, pick-remote, manual. Diagnostics via eve fs sync doctor.
+Commands: eve fs sync init, eve fs sync status, eve fs sync logs, eve fs sync conflicts.
+
+## Managed Models & Inference
 
 Multi-scope registry: platform -> org -> project (project wins). Each model declares its harness.
 Naming: managed/model-name prefix. Default catalog: DeepSeek R1, Llama 3.3, Kimi K2.5.
-Self-service: org/project admins register models via API. BYOK (unprefixed) coexists with managed.
-Commands: eve models list --managed, eve job create --model managed/deepseek-r1.
+Model aliases: human-readable names that resolve to canonical models — re-pin without redeploying.
+Inference targets: register Ollama pools, external hosts, or OpenAI-compatible endpoints.
+Fair-queue scheduling: weighted fairness with hard capacity caps per scope.
+On-demand GPU: starts cold, wakes on first request (~90s), idles down after 30 minutes.
+BYOK coexistence: managed/ prefix models billed by platform; unprefixed use user API keys.
+Commands: eve models list --managed, eve ollama targets, eve ollama alias set, eve ollama install add.
 
 ## Event Spine
 
@@ -325,7 +358,21 @@ eve db scale --env <env> --class <class>        Scale DB tier
 eve registry list                               List image repos
 eve registry tags <service>                     List image tags
 eve registry stats                              Registry storage usage
-eve models list --managed                       Managed model catalog
+eve memory set --agent <slug> --category <cat> --key <k> --file <f>  Store memory
+eve memory list --agent <slug> --category <cat>  List agent memory
+eve kv set --agent <slug> --key <k> --value <v>  Set KV entry
+eve search "query" --sources memory,docs,threads  Unified search
+eve thread distill <id> --agent <slug>           Distill thread to memory
+eve access groups create <name> --org <id>       Create access group
+eve access groups members add <g> --user <id>    Add user to group
+eve access explain --org <id> --user <id>        Explain access decision
+eve fs sync init --org <id> --local <path>       Init org file sync
+eve fs sync status --org <id>                    Sync health and lag
+eve fs sync doctor --org <id>                    Diagnostic checks
+eve models list --managed                        Managed model catalog
+eve ollama targets                               List inference targets
+eve ollama alias set --alias <n> --model-id <m>  Set model alias
+eve ollama install add --target-id <t> --model-id <m>  Install model on target
 eve project spend <id> --since 7d               Project spend
 eve org spend <id> --since 30d                  Org-wide spend
 eve admin balance credit --org <id> --amount N  Credit balance

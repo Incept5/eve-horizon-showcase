@@ -211,7 +211,7 @@ export const capabilities: Capability[] = [
       'Services: image, build, environment, ports, depends_on, healthcheck, volumes',
       'Environments: link to pipelines, support overrides and approval gates',
       'Service roles: component (default), worker, or job (one-off migrations/seeds)',
-      'Ingress: automatic URL generation from org/project slugs + domain',
+      'Ingress: automatic URL generation from org/project slugs + domain, plus vanity aliases via x-eve.ingress.alias',
       'Secret interpolation: ${secret.KEY} resolves at deploy time from encrypted store',
       'Runtime interpolation: ${ENV_NAME}, ${PROJECT_ID}, ${ORG_ID}, ${ORG_SLUG}, ${COMPONENT_NAME}',
       'Unknown fields allowed for forward compatibility',
@@ -327,6 +327,7 @@ x-eve:
       'Per-environment overrides: customize service config, resource classes, and DB tiers per environment',
       'Managed infrastructure: each environment can have its own managed Postgres, auto-provisioned and credential-injected',
       'Automatic ingress: URLs generated as {service}.{org}-{project}-{env}.{domain} — no manual DNS',
+      'Ingress aliases: configure x-eve.ingress.alias for clean vanity URLs — globally unique claims, auto-bound on deploy',
       'Approval gates: protect sensitive environments with required_approvals before deploys proceed',
       'Promotion model: build once in test, promote the same image digests through staging to production',
       'Environment lifecycle: create → deploy → show → diagnose → suspend → destroy — all via CLI',
@@ -713,6 +714,78 @@ routes:
     ],
   },
   {
+    id: 'agent-memory',
+    title: 'Agent Memory',
+    subtitle: 'Knowledge that persists across jobs',
+    icon: 'MEM',
+    color: 'violet',
+    category: 'agents',
+    features: ['agent-memory'],
+    tags: ['memory', 'kv-store', 'namespaces', 'search', 'distillation', 'context-hydration'],
+    diagram: `graph TD
+    subgraph Store["Memory Primitives"]
+      NS["Namespaces\\n/agents/{slug}/memory/"]
+      KV["KV Store\\n(JSONB + TTL)"]
+      SEARCH["Unified Search"]
+    end
+    subgraph Lifecycle["Knowledge Lifecycle"]
+      WRITE["Agent writes memory"]
+      DISTILL["Thread distillation"]
+      REVIEW["Lifecycle automation\\nactive → stale → expired"]
+    end
+    subgraph Hydration["Context Hydration"]
+      CONFIG["agents.yaml\\ncontext block"]
+      WORKER["Worker materializes\\n.eve/context/"]
+      AGENT["Agent starts with\\nrelevant history"]
+    end
+    WRITE --> NS
+    DISTILL --> NS
+    NS --> SEARCH
+    KV --> SEARCH
+    SEARCH --> CONFIG
+    CONFIG --> WORKER
+    WORKER --> AGENT
+    REVIEW --> NS`,
+    summary:
+      'Agents build institutional knowledge that persists across jobs. Memory namespaces store learnings and decisions, a KV store holds operational state with TTL, and unified search retrieves across all primitives. Context auto-hydration pre-loads relevant history into every new job.',
+    details: [
+      'Memory namespaces: /agents/{slug}/memory/{category}/{key}.md — categories include learnings, decisions, runbooks, conventions',
+      'Shared memory: /agents/shared/memory/ for team-wide conventions and cross-agent knowledge',
+      'KV store: lightweight JSONB state with TTL expiry — counters, session hints, focus areas — no schema required',
+      'Unified search: eve search queries across memory, docs, threads, and attachments in one call with ranked results',
+      'Thread distillation: convert high-value thread decisions into durable memory docs with eve thread distill',
+      'Lifecycle automation: review_due and expires_at columns surface stale knowledge before it decays',
+      'Context hydration: agents.yaml declares what memory to pre-load — worker materializes it into .eve/context/ at job start',
+      'Cold-start efficiency: agents begin every job with relevant history pre-loaded instead of bootstrapping from scratch',
+    ],
+    commands: [
+      { cmd: 'eve memory set --agent <slug> --category learnings --key auth-retry --file findings.md', desc: 'Store a memory document' },
+      { cmd: 'eve memory list --agent <slug> --category learnings', desc: 'List memory in a category' },
+      { cmd: 'eve kv set --agent <slug> --key focus_area --value \'"auth"\' --ttl 86400', desc: 'Set KV entry with TTL' },
+      { cmd: 'eve kv mget --agent <slug> --keys last_commit,review_count', desc: 'Bulk read KV entries' },
+      { cmd: 'eve search "authentication retry" --sources memory,docs,threads', desc: 'Unified cross-primitive search' },
+      { cmd: 'eve thread distill <thread-id> --agent <slug> --category decisions', desc: 'Distill thread into memory' },
+    ],
+    manifestExample: `# agents.yaml — context hydration config
+version: 1
+agents:
+  code_reviewer:
+    slug: code-reviewer
+    context:
+      memory:
+        categories: [learnings, runbooks]
+        max_items: 10
+        max_age: 30d
+      docs:
+        - path: /agents/shared/memory/conventions/
+          recursive: true
+      parent_attachments:
+        names: [findings.json, plan.md]
+      threads:
+        coordination: true
+        max_messages: 20`,
+  },
+  {
     id: 'pipelines',
     title: 'Build → Release → Deploy',
     subtitle: 'Deterministic CI/CD',
@@ -977,6 +1050,92 @@ agents:
       { cmd: 'eve auth mint --email bot@co.com --org org_xxx', desc: 'Mint bot token' },
       { cmd: 'POST /auth/invites', desc: 'Create identity-targeted invites' },
     ],
+  },
+  {
+    id: 'access-groups',
+    title: 'Access Groups & Scoping',
+    subtitle: 'Zero-trust data-plane access',
+    icon: 'AG',
+    color: 'orange',
+    category: 'infrastructure',
+    features: ['access-groups', 'scoped-access'],
+    tags: ['groups', 'access', 'scoping', 'rbac', 'data-plane', 'policy', 'acl'],
+    diagram: `graph TD
+    subgraph Groups["Access Groups"]
+      G1["pm-team"]
+      G2["eng-team"]
+      MEMBERS["Users +\\nService Principals"]
+    end
+    subgraph Bindings["Scoped Bindings"]
+      ROLE["Role: pm_editor"]
+      SCOPE["Scope: orgfs,\\norgdocs, envdb"]
+      PREFIX["allow_prefixes:\\n/groups/pm/**"]
+    end
+    subgraph Enforcement["Data-Plane Enforcement"]
+      FS["Org Filesystem"]
+      DOCS["Org Documents"]
+      DB["Env Database\\n(RLS)"]
+      DENY["Default: DENY"]
+    end
+    MEMBERS --> G1
+    MEMBERS --> G2
+    G1 --> ROLE
+    G2 --> ROLE
+    ROLE --> SCOPE
+    SCOPE --> PREFIX
+    PREFIX --> FS
+    PREFIX --> DOCS
+    PREFIX --> DB
+    DENY -.-> Enforcement`,
+    summary:
+      'Access groups bundle users and service principals into named teams. Scoped bindings restrict each group to specific filesystem paths, document prefixes, and database schemas. Default-deny enforcement means no data access without an explicit grant — even for org members.',
+    details: [
+      'Groups: org-scoped collections of users and service principals — one group maps to many bindings',
+      'Scoped bindings: attach scope_json to restrict orgfs, orgdocs, and envdb access by path prefix or schema',
+      'Default-deny data plane: base roles (owner/admin/member) grant control-plane only — data requires explicit scoping',
+      'Filesystem scoping: allow_prefixes restrict read/write to specific org filesystem paths',
+      'Document scoping: same prefix model for org documents — agents only see docs they are scoped to',
+      'Database RLS: group context injected as app.group_ids in session — row-level security filters by group',
+      'Access introspection: eve access explain shows exactly why a user can or cannot reach a resource',
+      'Policy-as-code: .eve/access.yaml v2 declares groups, roles, and scoped bindings in version control',
+    ],
+    commands: [
+      { cmd: 'eve access groups create pm-team --org <id>', desc: 'Create an access group' },
+      { cmd: 'eve access groups members add pm-team --user <id>', desc: 'Add user to group' },
+      { cmd: 'eve access memberships --org <id> --user <id>', desc: 'Show group memberships' },
+      { cmd: 'eve access explain --org <id> --user <id> --permission orgfs:read', desc: 'Explain access decision' },
+      { cmd: 'eve access bind --group <id> --role pm_editor --scope-json \'...\'', desc: 'Bind group with scope' },
+    ],
+    manifestExample: `# .eve/access.yaml — policy-as-code
+version: 2
+access:
+  groups:
+    pm-team:
+      description: Product management team
+      members:
+        - { type: user, id: user_pm1 }
+        - { type: service_principal, id: sp_backend }
+
+  roles:
+    pm_editor:
+      scope: org
+      permissions:
+        - orgdocs:read
+        - orgdocs:write
+        - orgfs:read
+        - orgfs:write
+        - envdb:read
+
+  bindings:
+    - subject: { type: group, id: pm-team }
+      roles: [pm_editor]
+      scope:
+        orgfs:
+          allow_prefixes: ["/groups/pm/**"]
+        orgdocs:
+          allow_prefixes: ["/groups/pm/**"]
+        envdb:
+          schemas: ["pm"]`,
   },
   {
     id: 'secrets',
@@ -1312,6 +1471,62 @@ environments:
               class: db.p2  # scale up for prod`,
   },
   {
+    id: 'org-filesystem',
+    title: 'Org Filesystem',
+    subtitle: 'Shared files that sync in seconds',
+    icon: 'FS',
+    color: 'teal',
+    category: 'infrastructure',
+    features: ['org-filesystem'],
+    tags: ['filesystem', 'sync', 'org-files', 'storage', 'devices', 'events', 'agent-mounts'],
+    diagram: `graph LR
+    subgraph Local["Developer Machine"]
+      FOLDER["~/Eve/acme/"]
+      WATCHER["File Watcher"]
+    end
+    subgraph Transport["Syncthing"]
+      BLOCKS["Block-level\\nTransfer"]
+      GATEWAY["Sync Gateway"]
+    end
+    subgraph Platform["Eve Platform"]
+      ORG_FS["/org/{org_id}/"]
+      EVENTS["org_fs_events"]
+      SSE["SSE Stream"]
+    end
+    subgraph Agents["Agent Runtime"]
+      MOUNT[".org/ workspace\\nmount"]
+      RW["Read/Write access"]
+    end
+    FOLDER --> WATCHER
+    WATCHER --> BLOCKS
+    BLOCKS --> GATEWAY
+    GATEWAY --> ORG_FS
+    ORG_FS --> EVENTS
+    EVENTS --> SSE
+    ORG_FS --> MOUNT
+    MOUNT --> RW`,
+    summary:
+      'Org-level persistent file storage with real-time sync. Developers link local folders to org storage via Syncthing — updates propagate in seconds. Agents access org files through workspace mounts at .org/, so shared knowledge, specs, and configs are always available.',
+    details: [
+      'Three sync modes: two-way (read/write), push-only (local to org), pull-only (org to local mirror)',
+      'Event-driven: file changes emit events via PostgreSQL NOTIFY — no polling, sub-5-second visibility',
+      'Device enrollment: one-time registration with short-lived token and deterministic re-enrollment via stored key',
+      'Link model: each device-org binding specifies mode, local path, include/exclude patterns, and sync cursor',
+      'Agent mounts: org filesystem mounted into job workspaces as .org/ — agents read and write shared files directly',
+      'Conflict resolution: pick-local, pick-remote, or manual strategies — inspect with eve fs sync conflicts',
+      'Diagnostics: eve fs sync doctor checks auth, link health, watcher status, disk space, and cursor drift',
+      'Scope-aware: access controlled by org permissions and orgfs:read/write scoped bindings',
+    ],
+    commands: [
+      { cmd: 'eve fs sync init --org <id> --local ~/Eve/acme --mode two-way', desc: 'Initialize org file sync' },
+      { cmd: 'eve fs sync status --org <id>', desc: 'Check sync health and lag' },
+      { cmd: 'eve fs sync logs --org <id> --follow', desc: 'Stream sync events' },
+      { cmd: 'eve fs sync pause --org <id>', desc: 'Pause syncing' },
+      { cmd: 'eve fs sync conflicts --org <id>', desc: 'List unresolved conflicts' },
+      { cmd: 'eve fs sync doctor --org <id>', desc: 'Run diagnostic checks' },
+    ],
+  },
+  {
     id: 'container-registry',
     title: 'Eve-Native Registry',
     subtitle: 'Zero-config image hosting',
@@ -1463,55 +1678,63 @@ services:
   },
   {
     id: 'managed-models',
-    title: 'Managed Models',
-    subtitle: 'Multi-scope LLM registry',
+    title: 'Managed Models & Inference',
+    subtitle: 'Model registry with platform inference',
     icon: 'MM',
     color: 'zinc',
     category: 'agents',
-    features: ['managed-models'],
-    tags: ['models', 'llm', 'managed', 'deepseek', 'byok', 'registry', 'multi-scope'],
+    features: ['managed-models', 'inference'],
+    tags: ['models', 'llm', 'managed', 'inference', 'ollama', 'gpu', 'aliases', 'byok', 'registry', 'fair-queue'],
     diagram: `graph TD
-    subgraph Scopes["Model Registry"]
-      PLATFORM["Platform Models\\n(system defaults)"]
-      ORG["Org Models\\n(org admin adds)"]
-      PROJECT["Project Models\\n(project admin adds)"]
+    subgraph Registry["Model Registry"]
+      PLATFORM["Platform Models"]
+      ORG["Org Models"]
+      PROJECT["Project Models"]
     end
-    subgraph Resolution["Merge Resolution"]
+    subgraph Resolution["Resolution & Aliases"]
       MERGE["project → org → platform"]
-      NAME["managed/model-name"]
+      ALIAS["Model Aliases\\nmanaged/llama-70b"]
     end
-    subgraph Harnesses["Harness-Aware Routing"]
-      CLAUDE["claude\\n→ ANTHROPIC_API_KEY"]
-      CODE["code\\n→ OPENAI_API_KEY"]
-      ZAI["zai\\n→ ZAI_API_KEY"]
-      GEMINI["gemini\\n→ GOOGLE_API_KEY"]
+    subgraph Inference["Inference Routing"]
+      QUEUE["Fair-Queue\\nScheduler"]
+      TARGET["Inference Targets"]
+      GPU["Platform GPU\\n(on-demand wake)"]
+      EXTERNAL["External Ollama"]
     end
-    subgraph Secrets["Credential Sources"]
-      PLATFORM_SEC["platform.* secrets"]
-      CASCADED["Cascaded org/project\\nsecrets"]
+    subgraph Harnesses["Harness-Aware"]
+      CLAUDE["claude"]
+      CODE["code"]
+      ZAI["zai"]
+      GEMINI["gemini"]
     end
     PLATFORM --> MERGE
     ORG --> MERGE
     PROJECT --> MERGE
-    MERGE --> NAME
-    NAME --> Harnesses
-    Harnesses --> Secrets`,
+    MERGE --> ALIAS
+    ALIAS --> QUEUE
+    QUEUE --> TARGET
+    TARGET --> GPU
+    TARGET --> EXTERNAL
+    MERGE --> Harnesses`,
     summary:
-      'Managed models live in a three-scope registry — platform, org, project — merged with project winning. Each model declares its harness, so the worker injects the right API key automatically. Org and project admins self-service register models from any provider.',
+      'Managed models live in a three-scope registry — platform, org, project — merged with project winning. Model aliases provide human-friendly names that resolve to canonical models. Platform inference routes requests through fair-queue scheduling to Ollama targets, with on-demand GPU lifecycle for cost-efficient execution.',
     details: [
-      'Three scopes: platform (system defaults), org (admin-managed), project (admin-managed) — project wins on conflict',
-      'Harness-aware: each model declares harness (claude, code, zai, gemini) for correct env var injection',
-      'Naming convention: managed/model-name prefix — worker resolves from merged registry at claim time',
-      'Self-service: org and project admins add models via API without platform admin involvement',
-      'Scoped secrets: org/project models use cascaded secrets; platform models use platform.* prefix',
-      'Default catalog: DeepSeek R1, Llama 3.3, Kimi K2.5 via GMI Cloud as platform baseline',
-      'BYOK coexistence: managed/ prefix models billed by platform; unprefixed models use user API keys',
-      'Resolution timing: models resolved after secret materialization so cascaded secrets are available',
+      'Three scopes: platform, org, project — project wins on conflict; self-service registration for org and project admins',
+      'Model aliases: human-readable names (managed/llama-70b) that resolve to canonical models — re-pin without redeploying',
+      'Inference targets: register internal Ollama pools, external hosts, or OpenAI-compatible endpoints as destinations',
+      'Fair-queue scheduling: weighted fairness with hard capacity caps prevents any scope from starving others',
+      'On-demand GPU: platform GPU starts cold (desired=0), wakes on first request, idles down after 30 minutes',
+      'Harness-aware routing: each model declares its harness (claude, code, zai, gemini) for automatic API key injection',
+      'Usage attribution: every inference call records org, project, model, target, and token counts for billing',
+      'BYOK coexistence: managed/ prefix models billed by platform; unprefixed models use user-provided API keys',
     ],
     commands: [
       { cmd: 'eve models list --managed', desc: 'List available managed models' },
-      { cmd: 'eve job create --model managed/deepseek-r1 "..."', desc: 'Use a managed model' },
-      { cmd: 'eve secrets set GMICLOUD_API_KEY sk-... --org org_xxx', desc: 'Set org-level model credentials' },
+      { cmd: 'eve ollama targets', desc: 'List inference targets and health status' },
+      { cmd: 'eve ollama alias set --alias llama-70b --model-id <m> --scope-kind org', desc: 'Set model alias at scope' },
+      { cmd: 'eve ollama install add --target-id <t> --model-id <m>', desc: 'Install model on inference target' },
+      { cmd: 'eve ollama target test <id>', desc: 'Health check an inference target' },
+      { cmd: 'eve job create --model managed/deepseek-r1 "..."', desc: 'Use a managed model in a job' },
     ],
     manifestExample: `x-eve:
   defaults:
@@ -1519,13 +1742,16 @@ services:
     harness_options:
       model: managed/deepseek-r1
 
-# Org-level model registration (API):
-# PUT /orgs/:id/models/my-custom-llm
-# {
-#   "harness": "code",
-#   "base_url": "https://api.provider.com/v1",
-#   "model_id": "custom-model-v1",
-#   "secret_env_var": "CUSTOM_API_KEY"
-# }`,
+# Inference targets (managed via CLI):
+#   eve ollama target add --name staging-gpu \\
+#     --url http://10.0.x.x:11434
+#   eve ollama install add --target-id <t> \\
+#     --model-id <m>
+#   eve ollama alias set --alias llama-70b \\
+#     --model-id <m> --scope-kind platform
+
+# On-demand GPU lifecycle:
+#   GPU off → request → auto-wake (~90s)
+#   → healthy → serving → 30min idle → shutdown`,
   },
 ]
