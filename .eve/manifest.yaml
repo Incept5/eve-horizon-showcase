@@ -1,6 +1,8 @@
 schema: eve/compose/v2
 project: eve-horizon-showcase
 
+registry: eve
+
 services:
   web:
     build:
