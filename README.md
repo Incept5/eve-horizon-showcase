@@ -1,6 +1,6 @@
 # Eve Horizon Showcase
 
-Interactive showcase for the [Eve Horizon](https://web.incept5-evshow-staging.eh1.incept5.dev) agent platform — a job-first cloud platform where AI agents are first-class citizens.
+Interactive showcase for the [Eve Horizon](https://showcase.eve.example.com) agent platform — a job-first cloud platform where AI agents are first-class citizens.
 
 Built with React, TypeScript, Tailwind CSS, and deployed via the Eve platform itself.
 
@@ -14,7 +14,7 @@ The app also serves an `/llms` route with a structured reference document for LL
 
 ## Live
 
-**Staging:** https://web.incept5-evshow-staging.eh1.incept5.dev
+**Staging:** https://showcase.eve.example.com
 
 ## Tech stack
 
@@ -48,7 +48,7 @@ eve profile use staging
 eve env deploy staging --ref main --repo-dir .
 ```
 
-The `.eve/manifest.yaml` defines the build → release → deploy pipeline targeting `ghcr.io/incept5/eve-horizon-showcase`.
+The `.eve/manifest.yaml` defines the build → release → deploy pipeline targeting `ghcr.io/eve-horizon/eve-horizon-showcase`.
 
 ## Project structure
 

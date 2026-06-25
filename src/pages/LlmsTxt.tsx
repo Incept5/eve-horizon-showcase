@@ -20,7 +20,7 @@ function generateLlmsTxt(): string {
     '',
     '```bash',
     'npm install -g @eve-horizon/cli',
-    'eve skills install https://github.com/incept5/eve-skillpacks',
+    'eve skills install https://github.com/eve-horizon/eve-skillpacks',
     'skill read eve-bootstrap',
     '```',
     '',
@@ -154,9 +154,9 @@ function generateLlmsTxt(): string {
   lines.push(
     '## Links',
     '',
-    '- Showcase: https://web.incept5-evshow-staging.eh1.incept5.dev',
-    '- GitHub: https://github.com/incept5/eve-horizon-showcase',
-    '- Incept5: https://github.com/incept5',
+    '- Showcase: https://showcase.eve.example.com',
+    '- GitHub: https://github.com/eve-horizon/eve-horizon-showcase',
+    '- Eve Horizon: https://github.com/eve-horizon',
     '',
   )
 

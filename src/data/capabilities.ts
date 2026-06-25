@@ -93,7 +93,7 @@ export const capabilities: Capability[] = [
       'Platform learning: bootstrap points agents to the /llms route for full CLI, manifest, and capabilities reference',
     ],
     commands: [
-      { cmd: 'eve skills install https://github.com/incept5/eve-skillpacks', desc: 'Install skills (creates skills.txt if needed)' },
+      { cmd: 'eve skills install https://github.com/eve-horizon/eve-skillpacks', desc: 'Install skills (creates skills.txt if needed)' },
       { cmd: 'skill read eve-bootstrap', desc: 'Load and follow the bootstrap skill' },
       { cmd: 'eve auth status', desc: 'Check if already authenticated' },
       { cmd: 'eve auth request-access --ssh-key ~/.ssh/id_ed25519.pub --org "My Co" --wait', desc: 'Request access and wait (new users)' },
@@ -160,7 +160,7 @@ export const capabilities: Capability[] = [
     commands: [
       { cmd: 'eve system health', desc: 'Check platform health' },
       { cmd: 'eve system status', desc: 'Full system overview' },
-      { cmd: 'eve profile create staging --api-url https://api.eh1.incept5.dev', desc: 'Configure API target' },
+      { cmd: 'eve profile create staging --api-url https://api.eve.example.com', desc: 'Configure API target' },
       { cmd: 'eve profile set --org org_xxx --project proj_xxx', desc: 'Set default org and project' },
     ],
   },
@@ -299,17 +299,17 @@ x-eve:
     subgraph test["test namespace"]
       T_SVC["Services"]
       T_DB["Managed DB\\n(db.p1)"]
-      T_URL["api.myorg-app-test.eh1..."]
+      T_URL["api.myorg-app-test.eve..."]
     end
     subgraph staging["staging namespace"]
       S_SVC["Services"]
       S_DB["Managed DB\\n(db.p1)"]
-      S_URL["api.myorg-app-staging.eh1..."]
+      S_URL["api.myorg-app-staging.eve..."]
     end
     subgraph production["production namespace"]
       P_SVC["Services"]
       P_DB["Managed DB\\n(db.p2)"]
-      P_URL["api.myorg-app-production.eh1..."]
+      P_URL["api.myorg-app-production.eve..."]
       P_GATE["Approval Gate"]
     end
     ENVS --> test

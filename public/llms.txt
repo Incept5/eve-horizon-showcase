@@ -16,7 +16,7 @@ API stores state in Postgres. Event Spine routes triggers. Chat Gateway normaliz
 
 ```bash
 npm install -g @eve-horizon/cli
-eve skills install https://github.com/incept5/eve-skillpacks
+eve skills install https://github.com/eve-horizon/eve-skillpacks
 skill read eve-bootstrap
 ```
 
@@ -122,7 +122,7 @@ x-eve:
   install_agents: [claude-code, codex, gemini-cli]
   packs:
     - source: ./skillpacks/my-pack
-    - source: incept5/eve-skillpacks
+    - source: eve-horizon/eve-skillpacks
       ref: 0123456789abcdef0123456789abcdef01234567
 ```
 
@@ -380,6 +380,6 @@ eve admin balance credit --org <id> --amount N  Credit balance
 
 ## Links
 
-- Showcase: https://web.incept5-evshow-staging.eh1.incept5.dev
-- GitHub: https://github.com/incept5/eve-horizon-showcase
-- Incept5: https://github.com/incept5
+- Showcase: https://showcase.eve.example.com
+- GitHub: https://github.com/eve-horizon/eve-horizon-showcase
+- Eve Horizon: https://github.com/eve-horizon

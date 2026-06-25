@@ -4,7 +4,7 @@ Interactive showcase SPA for the Eve Horizon agent platform. React 19 + TypeScri
 
 ## Live URL
 
-https://web.incept5-evshow-staging.eh1.incept5.dev
+https://showcase.eve.example.com
 
 ## Architecture
 
@@ -19,17 +19,17 @@ Theme toggle (light/dark) persists to localStorage. Mermaid diagrams render via 
 
 ## Eve Project (Staging)
 
-- **Project ID:** proj_01khjx10mheh0v51nxkv7rsq88
-- **Org:** org_Incept5 (Incept5)
+- **Project ID:** proj_example (placeholder)
+- **Org:** org_example
 - **Slug:** evshow
-- **Profile:** staging (api: https://api.eh1.incept5.dev)
+- **Profile:** staging (api: https://api.eve.example.com)
 
 ## Secrets
 
 Project secrets are stored in `env.secrets` (gitignored). Import them into Eve with:
 
 ```bash
-eve secrets import --file env.secrets --project proj_01khjx10mheh0v51nxkv7rsq88
+eve secrets import --file env.secrets --project proj_example
 ```
 
 ## Deploy
@@ -39,7 +39,7 @@ eve profile use staging
 eve env deploy staging --ref main --repo-dir .
 ```
 
-Pipeline defined in `.eve/manifest.yaml`: build → release → deploy to `ghcr.io/incept5/eve-horizon-showcase`.
+Pipeline defined in `.eve/manifest.yaml`: build → release → deploy to `ghcr.io/eve-horizon/eve-horizon-showcase`.
 
 ## Development
 

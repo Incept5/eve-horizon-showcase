@@ -28,3 +28,6 @@ env.secrets
 .agent/skills
 .agents/skills
 .claude/skills
+
+# Local Eve profile
+.eve/profile.yaml

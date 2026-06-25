@@ -10,5 +10,5 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 3000
 
-LABEL org.opencontainers.image.source="https://github.com/incept5/eve-horizon-showcase"
+LABEL org.opencontainers.image.source="https://github.com/eve-horizon/eve-horizon-showcase"
 LABEL org.opencontainers.image.description="Eve Horizon Agent Platform Showcase"
